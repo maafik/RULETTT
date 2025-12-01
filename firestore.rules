@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Профили пользователей
+    match /userProfiles/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // FCM токены пользователей - пользователи могут читать и писать свои токены
+    match /userFCMTokens/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Уведомления - пользователи могут создавать и читать свои уведомления
+    match /notifications/{notificationId} {
+      // Любой авторизованный пользователь может создавать уведомления
+      allow create: if request.auth != null;
+      
+      // Читать могут только получатель уведомления
+      allow read: if request.auth != null && request.auth.uid == resource.data.targetUserUid;
+      
+      // Обновлять может:
+      // 1. Получатель (например, пометить как прочитанное)
+      // 2. Cloud Function (через Admin SDK обходит правила, но для ясности оставляем)
+      allow update: if request.auth != null && request.auth.uid == resource.data.targetUserUid;
+      
+      // Удалять может только получатель
+      allow delete: if request.auth != null && request.auth.uid == resource.data.targetUserUid;
+      
+      // Примечание: Cloud Functions используют Admin SDK и обходят эти правила,
+      // поэтому они могут обновлять уведомления (например, помечать как отправленные)
+    }
+    
+    // Музыканты - все авторизованные могут читать
+    match /musicians/{musicianId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Только через Admin SDK
+    }
+    
+    // Заказы - все авторизованные могут создавать и читать
+    match /orders/{orderId} {
+      // Любой авторизованный пользователь может создавать заказы
+      allow create: if request.auth != null;
+      
+      // Читать могут:
+      // 1. Заказчик (создатель заказа)
+      // 2. Музыкант (исполнитель заказа)
+      allow read: if request.auth != null && (
+        resource.data.customerUid == request.auth.uid ||
+        resource.data.artistName == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.musicianName
+      );
+      
+      // Обновлять могут заказчик или музыкант
+      allow update: if request.auth != null && (
+        resource.data.customerUid == request.auth.uid ||
+        resource.data.artistName == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.musicianName
+      );
+      
+      // Удалять может только заказчик
+      allow delete: if request.auth != null && resource.data.customerUid == request.auth.uid;
+      
+      // ⭐ НОВОЕ: Правила для сообщений в чате заказа
+      match /messages/{messageId} {
+        // Читать сообщения могут заказчик или музыкант этого заказа
+        allow read: if request.auth != null && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.customerUid == request.auth.uid ||
+          get(/databases/$(database)/documents/orders/$(orderId)).data.artistName == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.musicianName
+        );
+        
+        // Создавать сообщения могут заказчик или музыкант этого заказа
+        allow create: if request.auth != null && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.customerUid == request.auth.uid ||
+          get(/databases/$(database)/documents/orders/$(orderId)).data.artistName == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.musicianName
+        );
+        
+        // Сообщения нельзя изменять или удалять
+        allow update, delete: if false;
+      }
+    }
+    
+    // Чат (если используется отдельная коллекция)
+    match /chats/{chatId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Сообщения чата (если используется отдельная коллекция)
+    match /chatMessages/{messageId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+

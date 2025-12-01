@@ -1,0 +1,10 @@
+# Пример файла key.properties
+# Скопируйте этот файл в key.properties и заполните своими данными
+# НЕ загружайте key.properties в Git!
+
+storePassword=ваш_пароль_keystore
+keyPassword=ваш_пароль_ключа
+keyAlias=musicbooking
+storeFile=../musicbooking-release-key.jks
+
+

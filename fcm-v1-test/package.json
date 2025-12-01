@@ -1,0 +1,18 @@
+{
+  "name": "fcm-v1-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node auto-send-fcm-simple.js",
+    "test": "node send-fcm.js",
+    "auto": "node auto-send-fcm.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "google-auth-library": "^10.5.0",
+    "node-fetch": "^2.7.0"
+  }
+}

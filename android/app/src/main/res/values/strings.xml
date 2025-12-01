@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MusicBooking</string>
+    <string name="title_activity_main">MusicBooking</string>
+    <string name="package_name">com.musicbooking.app</string>
+    <string name="custom_url_scheme">com.musicbooking.app</string>
+</resources>
