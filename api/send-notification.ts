@@ -28,33 +28,71 @@ export default async function handler(
       const { initializeApp, getApps, cert } = await import('firebase-admin/app');
       const { getFirestore } = await import('firebase-admin/firestore');
 
-      // Инициализация Firebase Admin (только один раз)
-      if (!getApps().length) {
+      // Проверяем наличие переменных окружения
+      const projectId = process.env.FIREBASE_PROJECT_ID;
+      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+      if (!projectId || !clientEmail || !privateKey) {
+        console.error('❌ Firebase Admin переменные окружения не настроены:', {
+          hasProjectId: !!projectId,
+          hasClientEmail: !!clientEmail,
+          hasPrivateKey: !!privateKey,
+        });
+        console.error('💡 Добавьте в Vercel Environment Variables:');
+        console.error('   - FIREBASE_PROJECT_ID');
+        console.error('   - FIREBASE_CLIENT_EMAIL');
+        console.error('   - FIREBASE_PRIVATE_KEY');
+      } else {
+        // Инициализация Firebase Admin (только один раз)
+        if (!getApps().length) {
+          try {
+            initializeApp({
+              credential: cert({
+                projectId,
+                clientEmail,
+                privateKey: privateKey.replace(/\\n/g, '\n'),
+              }),
+            });
+            console.log('✅ Firebase Admin инициализирован');
+          } catch (initError: any) {
+            console.error('❌ Ошибка инициализации Firebase Admin:', initError);
+            console.error('Детали:', {
+              message: initError.message,
+              code: initError.code,
+            });
+          }
+        }
+
         try {
-          initializeApp({
-            credential: cert({
-              projectId: process.env.FIREBASE_PROJECT_ID,
-              clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-              privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-            }),
+          const db = getFirestore();
+          const playerIdDoc = await db
+            .collection('userOneSignalIds')
+            .doc(targetUserUid)
+            .get();
+
+          if (playerIdDoc.exists) {
+            oneSignalPlayerId = playerIdDoc.data()?.playerId;
+            console.log(`✅ Player ID найден для пользователя ${targetUserUid}`);
+          } else {
+            console.warn(`⚠️ Player ID не найден в Firestore для пользователя ${targetUserUid}`);
+          }
+        } catch (dbError: any) {
+          console.error('❌ Ошибка при получении Player ID из Firestore:', dbError);
+          console.error('Детали:', {
+            message: dbError.message,
+            code: dbError.code,
+            stack: dbError.stack,
           });
-          console.log('✅ Firebase Admin инициализирован');
-        } catch (error) {
-          console.error('❌ Ошибка инициализации Firebase Admin:', error);
         }
       }
-
-      const db = getFirestore();
-      const playerIdDoc = await db
-        .collection('userOneSignalIds')
-        .doc(targetUserUid)
-        .get();
-
-      if (playerIdDoc.exists) {
-        oneSignalPlayerId = playerIdDoc.data()?.playerId;
-      }
-    } catch (error) {
-      console.error('❌ Ошибка при получении Player ID из Firestore:', error);
+    } catch (error: any) {
+      console.error('❌ Общая ошибка при получении Player ID:', error);
+      console.error('Детали:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+      });
     }
   }
 
@@ -80,6 +118,17 @@ export default async function handler(
     // Отправляем уведомление через OneSignal REST API
     const oneSignalUrl = 'https://onesignal.com/api/v1/notifications';
     
+    // Определяем URL для уведомления
+    // Для сообщений в чате ведем на страницу чата, для остальных - на страницу заказа
+    let notificationUrl: string | undefined;
+    if (orderId) {
+      if (status === 'chat-message') {
+        notificationUrl = `${process.env.VITE_APP_URL || ''}/chat/${orderId}`;
+      } else {
+        notificationUrl = `${process.env.VITE_APP_URL || ''}/order/${orderId}`;
+      }
+    }
+    
     const notificationPayload = {
       app_id: oneSignalAppId,
       include_player_ids: [oneSignalPlayerId],
@@ -89,7 +138,7 @@ export default async function handler(
         orderId: orderId || '',
         status: status || '',
       },
-      url: orderId ? `${process.env.VITE_APP_URL || ''}/order/${orderId}` : undefined,
+      url: notificationUrl,
     };
 
     // OneSignal REST API использует Basic Auth: Authorization: Basic <base64(REST_API_KEY:)>

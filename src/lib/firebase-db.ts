@@ -720,6 +720,15 @@ export async function sendChatMessage(
     });
     
     console.log(`✅ Сообщение отправлено в чат заказа ${orderId}, ID: ${docRef.id}`);
+    
+    // Отправляем уведомление получателю
+    try {
+      await sendChatMessageNotification(orderId, message);
+    } catch (notificationError) {
+      // Не прерываем выполнение, если уведомление не отправилось
+      console.error("⚠️ Ошибка при отправке уведомления о сообщении:", notificationError);
+    }
+    
     return true;
   } catch (error: any) {
     console.error("❌ Ошибка при отправке сообщения:", error);
@@ -736,6 +745,81 @@ export async function sendChatMessage(
     }
     
     throw error;
+  }
+}
+
+/**
+ * Отправить уведомление о новом сообщении в чате получателю
+ */
+async function sendChatMessageNotification(
+  orderId: string,
+  message: { text: string; sender: "client" | "musician"; senderUid: string }
+): Promise<void> {
+  try {
+    // Получаем данные заказа
+    const orderRef = doc(db, "orders", orderId);
+    const orderDoc = await getDoc(orderRef);
+    
+    if (!orderDoc.exists()) {
+      console.warn("⚠️ Заказ не найден для отправки уведомления:", orderId);
+      return;
+    }
+    
+    const orderData = orderDoc.data();
+    const customerUid = orderData.customerUid;
+    const artistName = orderData.artistName;
+    
+    if (!customerUid || !artistName) {
+      console.warn("⚠️ Недостаточно данных заказа для отправки уведомления:", { customerUid, artistName });
+      return;
+    }
+    
+    // Определяем получателя уведомления
+    let targetUserUid: string | null = null;
+    let senderName: string = "";
+    
+    if (message.sender === "client") {
+      // Отправитель - клиент, получатель - музыкант
+      targetUserUid = await getMusicianUidByName(artistName);
+      // Получаем имя клиента
+      const customerName = orderData.customerName || orderData.customerEmail || "Клиент";
+      senderName = customerName;
+    } else {
+      // Отправитель - музыкант, получатель - клиент
+      targetUserUid = customerUid;
+      senderName = artistName;
+    }
+    
+    if (!targetUserUid) {
+      console.warn("⚠️ Не удалось определить получателя уведомления");
+      return;
+    }
+    
+    // Не отправляем уведомление самому себе
+    if (targetUserUid === message.senderUid) {
+      console.log("ℹ️ Пропускаем уведомление - отправитель и получатель совпадают");
+      return;
+    }
+    
+    // Импортируем функцию уведомлений
+    const { notifyChatMessage } = await import("./notifications");
+    
+    // Отправляем уведомление
+    const notificationSent = await notifyChatMessage(
+      targetUserUid,
+      orderId,
+      senderName,
+      message.text
+    );
+    
+    if (notificationSent) {
+      console.log(`✅ Уведомление о сообщении отправлено пользователю ${targetUserUid}`);
+    } else {
+      console.warn(`⚠️ Не удалось отправить уведомление пользователю ${targetUserUid} (Player ID не найден или ошибка API)`);
+    }
+  } catch (error) {
+    console.error("❌ Ошибка при отправке уведомления о сообщении:", error);
+    // Не пробрасываем ошибку, чтобы не прерывать отправку сообщения
   }
 }
 

@@ -210,6 +210,29 @@ export async function notifyOrderCancelled(
 }
 
 /**
+ * Отправить уведомление о новом сообщении в чате
+ */
+export async function notifyChatMessage(
+  targetUserUid: string,
+  orderId: string,
+  senderName: string,
+  messageText: string
+): Promise<boolean> {
+  // Обрезаем текст сообщения для уведомления
+  const shortText = messageText.length > 50 
+    ? messageText.substring(0, 50) + "..." 
+    : messageText;
+  
+  return await sendOrderNotification(
+    targetUserUid,
+    orderId,
+    "Новое сообщение",
+    `${senderName}: ${shortText}`,
+    "chat-message"
+  );
+}
+
+/**
  * Настроить обработку входящих уведомлений
  * (Использует OneSignal вместо FCM)
  */
