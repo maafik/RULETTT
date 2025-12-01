@@ -21,8 +21,11 @@ function isOneSignalSDKInitialized(): boolean {
   try {
     // Проверяем, есть ли глобальный объект OneSignal и инициализирован ли он
     const globalOneSignal = (window as any).OneSignal;
-    if (globalOneSignal && globalOneSignal.initialized) {
-      return true;
+    if (globalOneSignal) {
+      // Проверяем, инициализирован ли через глобальный SDK
+      if (globalOneSignal.initialized || globalOneSignal.SdkInitialized) {
+        return true;
+      }
     }
     
     // Альтернативная проверка через react-onesignal
@@ -69,12 +72,13 @@ export async function initializeOneSignal(): Promise<boolean> {
   const allowedDomain = 'quirkynest.ru';
   const isAllowedDomain = currentHost === allowedDomain || currentHost.endsWith(`.${allowedDomain}`);
 
-  // Если мы на localhost и домен не разрешен в OneSignal, пропускаем инициализацию
-  if (isLocalhost && !isAllowedDomain) {
-    console.warn("⚠️ OneSignal не настроен для localhost. Инициализация пропущена.");
-    console.warn("💡 Для работы на localhost добавьте localhost в настройки OneSignal:");
+  // OneSignal SDK v16 поддерживает localhost из коробки через allowLocalhostAsSecureOrigin
+  // Разрешаем инициализацию на localhost и разрешенных доменах
+  if (!isLocalhost && !isAllowedDomain) {
+    console.warn("⚠️ OneSignal не настроен для домена:", currentHost);
+    console.warn("💡 Для работы добавьте домен в настройки OneSignal:");
     console.warn("   OneSignal Dashboard → Settings → Web Push → Configure → Allowed Domains");
-    console.warn("   Или используйте продакшен домен для тестирования уведомлений.");
+    console.warn("   Или используйте localhost для разработки (поддерживается автоматически).");
     // Помечаем как "инициализирован", чтобы не пытаться снова
     oneSignalInitialized = true;
     return false; // Возвращаем false, чтобы показать, что инициализация не прошла

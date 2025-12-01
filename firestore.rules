@@ -12,9 +12,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // OneSignal Player ID пользователей - пользователи могут читать и писать свои Player ID
+    // OneSignal Player ID пользователей
+    // Пользователи могут читать Player ID других пользователей (для отправки уведомлений)
+    // Писать могут только свой Player ID
     match /userOneSignalIds/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null; // Любой авторизованный может читать (для отправки уведомлений)
+      allow write: if request.auth != null && request.auth.uid == userId; // Писать может только владелец
     }
     
     // Уведомления - пользователи могут создавать и читать свои уведомления

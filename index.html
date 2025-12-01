@@ -15,6 +15,22 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <!-- OneSignal SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "0ae1d329-0160-4eac-aacc-df8f50479606",
+          safari_web_id: "web.onesignal.auto.0be2159b-fe04-48af-91ed-a963117d84ac",
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: true,
+          },
+        });
+      });
+    </script>
   </head>
 
   <body>

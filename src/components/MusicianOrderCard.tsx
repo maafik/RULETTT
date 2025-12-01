@@ -1,4 +1,5 @@
 import { MessageCircle, ChevronRight, Star } from "lucide-react";
+import ImageWithFallback from "./ImageWithFallback";
 
 interface MusicianOrderCardProps {
   name: string;
@@ -16,15 +17,12 @@ const MusicianOrderCard = ({ name, style, rating, price, image, onMessage, onVie
       <div className="flex items-center gap-4">
         {/* Photo */}
         <div className="relative h-[60px] w-[60px] flex-shrink-0 overflow-hidden rounded-[12px] bg-muted">
-          {image ? (
-            <img src={image} alt={name} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
-              <span className="text-xl font-bold text-muted-foreground">
-                {name.charAt(0)}
-              </span>
-            </div>
-          )}
+          <ImageWithFallback 
+            src={image} 
+            alt={name} 
+            fallbackText={name.charAt(0)}
+            className="h-full w-full object-cover"
+          />
         </div>
 
         {/* Info */}

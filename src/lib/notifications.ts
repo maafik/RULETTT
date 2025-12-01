@@ -37,36 +37,58 @@ export async function sendOrderNotification(
     // Вызываем API endpoint для отправки уведомления
     const apiUrl = import.meta.env.VITE_API_URL || "/api/send-notification";
     
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        targetUserUid,
-        playerId: playerId || undefined,
-        orderId,
-        title,
-        body,
-        status,
-      }),
-    });
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetUserUid,
+          playerId: playerId || undefined,
+          orderId,
+          title,
+          body,
+          status,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("❌ Ошибка при отправке уведомления:", errorData);
+      if (!response.ok) {
+        // Если API endpoint не найден (404), это нормально для разработки на localhost
+        if (response.status === 404) {
+          console.warn(`⚠️ API endpoint не найден (${apiUrl}). Это нормально для разработки на localhost.`);
+          console.warn(`💡 Для продакшена настройте VITE_API_URL в переменных окружения.`);
+          // Сохраняем уведомление в Firestore для истории
+          await saveNotificationToFirestore(targetUserUid, orderId, title, body, status);
+          return false;
+        }
+        
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Ошибка при отправке уведомления:", errorData);
+        // Сохраняем уведомление в Firestore для истории
+        await saveNotificationToFirestore(targetUserUid, orderId, title, body, status);
+        return false;
+      }
+
+      const result = await response.json();
+      console.log(`✅ Уведомление отправлено через OneSignal для пользователя ${targetUserUid}:`, title);
+      
+      // Также сохраняем уведомление в Firestore для истории
+      await saveNotificationToFirestore(targetUserUid, orderId, title, body, status);
+      
+      return true;
+    } catch (fetchError: any) {
+      // Ошибка сети или CORS
+      if (fetchError.message?.includes('Failed to fetch') || fetchError.name === 'TypeError') {
+        console.warn(`⚠️ Не удалось подключиться к API endpoint (${apiUrl}). Это нормально для разработки на localhost.`);
+        console.warn(`💡 Для продакшена настройте VITE_API_URL в переменных окружения.`);
+      } else {
+        console.error("❌ Ошибка сети при отправке уведомления:", fetchError);
+      }
       // Сохраняем уведомление в Firestore для истории
       await saveNotificationToFirestore(targetUserUid, orderId, title, body, status);
       return false;
     }
-
-    const result = await response.json();
-    console.log(`✅ Уведомление отправлено через OneSignal для пользователя ${targetUserUid}:`, title);
-    
-    // Также сохраняем уведомление в Firestore для истории
-    await saveNotificationToFirestore(targetUserUid, orderId, title, body, status);
-    
-    return true;
   } catch (error: any) {
     console.error("❌ Ошибка при отправке уведомления:", error);
     // Сохраняем уведомление в Firestore для истории

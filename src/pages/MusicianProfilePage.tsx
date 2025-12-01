@@ -8,6 +8,7 @@ import { getOrderById } from "@/lib/firebase-db";
 import { getUserProfile } from "@/lib/firebase-db";
 import { auth } from "@/lib/firebase";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import ImageWithFallback from "@/components/ImageWithFallback";
 
 const fallbackGallery = (image?: string) => {
   if (image) return [image];
@@ -280,7 +281,12 @@ const MusicianProfilePage = () => {
                 <div className="grid grid-cols-3 gap-2">
                   {gallery.map((image, index) => (
                     <div key={`${image}-${index}`} className="h-24 overflow-hidden rounded-[14px] bg-muted">
-                      <img src={image} alt={`${order.artistName} фото ${index + 1}`} className="h-full w-full object-cover" />
+                      <ImageWithFallback 
+                        src={image} 
+                        alt={`${order.artistName} фото ${index + 1}`} 
+                        fallbackText={order.artistName.charAt(0)}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
                   ))}
                 </div>

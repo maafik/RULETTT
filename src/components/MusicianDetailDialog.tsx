@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, Music, Clock3, Heart } from "lucide-react";
+import ImageWithFallback from "./ImageWithFallback";
 
 interface MusicianDetailDialogProps {
   open: boolean;
@@ -109,7 +110,12 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
                   <div className="grid grid-cols-3 gap-2">
                     {musician.gallery.map((image, index) => (
                       <div key={index} className="h-20 overflow-hidden rounded-[12px] bg-muted">
-                        <img src={image} alt={`${musician.name} фото ${index + 1}`} className="h-full w-full object-cover" />
+                        <ImageWithFallback 
+                          src={image} 
+                          alt={`${musician.name} фото ${index + 1}`} 
+                          fallbackText={musician.name.charAt(0)}
+                          className="h-full w-full object-cover"
+                        />
                       </div>
                     ))}
                   </div>

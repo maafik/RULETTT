@@ -11,6 +11,7 @@ import { CalendarIcon } from "lucide-react";
 import { format, parse } from "date-fns";
 import { ru } from "date-fns/locale/ru";
 import { cn } from "@/lib/utils";
+import ImageWithFallback from "./ImageWithFallback";
 
 interface BookingDialogProps {
   open: boolean;
@@ -148,7 +149,12 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
               <div className="flex items-center gap-3">
                 {musician.image && (
                   <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-[12px] bg-muted">
-                    <img src={musician.image} alt={musician.name} className="h-full w-full object-cover" />
+                    <ImageWithFallback 
+                      src={musician.image} 
+                      alt={musician.name} 
+                      fallbackText={musician.name.charAt(0)}
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                 )}
                 <div>
