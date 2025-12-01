@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "link-profile": "node scripts/link-musician-profile.cjs",
     "clear-orders": "node scripts/clear-orders.cjs",
+    "check-onesignal": "node scripts/check-onesignal-setup.cjs",
     "cap:sync": "npm run build && npx cap sync",
     "cap:copy": "npx cap copy",
     "cap:open:android": "npx cap open android",
