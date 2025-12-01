@@ -3,7 +3,8 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getMessaging, isSupported } from "firebase/messaging";
 
-const firebaseConfig = {
+// Проверяем наличие всех необходимых переменных окружения
+const requiredEnvVars = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -12,7 +13,48 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// Маппинг ключей на имена переменных окружения
+const envVarNames: Record<string, string> = {
+  apiKey: "VITE_FIREBASE_API_KEY",
+  authDomain: "VITE_FIREBASE_AUTH_DOMAIN",
+  projectId: "VITE_FIREBASE_PROJECT_ID",
+  storageBucket: "VITE_FIREBASE_STORAGE_BUCKET",
+  messagingSenderId: "VITE_FIREBASE_MESSAGING_SENDER_ID",
+  appId: "VITE_FIREBASE_APP_ID",
+};
+
+// Проверяем, что все переменные присутствуют
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([key, value]) => !value)
+  .map(([key]) => envVarNames[key]);
+
+if (missingVars.length > 0 && typeof window !== "undefined") {
+  console.error("❌ Отсутствуют переменные окружения Firebase:", missingVars.join(", "));
+  console.error("💡 Добавьте их в Vercel Environment Variables:");
+  console.error("   Vercel Dashboard → Settings → Environment Variables");
+  console.error("   См. файл VERCEL_ENV_SETUP.md для инструкций");
+}
+
+const firebaseConfig = {
+  apiKey: requiredEnvVars.apiKey || "",
+  authDomain: requiredEnvVars.authDomain || "",
+  projectId: requiredEnvVars.projectId || "",
+  storageBucket: requiredEnvVars.storageBucket || "",
+  messagingSenderId: requiredEnvVars.messagingSenderId || "",
+  appId: requiredEnvVars.appId || "",
+};
+
+let app;
+try {
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+} catch (error) {
+  console.error("❌ Ошибка при инициализации Firebase:", error);
+  if (typeof window !== "undefined") {
+    console.error("💡 Проверьте переменные окружения в Vercel");
+    console.error("   См. файл VERCEL_ENV_SETUP.md для инструкций");
+  }
+  throw error;
+}
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);

@@ -5,15 +5,50 @@ import { Capacitor } from "@capacitor/core";
 
 // Инициализация OneSignal
 let oneSignalInitialized = false;
+let oneSignalNotificationsInitialized = false;
 
 // Проверка, запущено ли приложение в нативном режиме
 const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
 
 /**
+ * Проверить, инициализирован ли OneSignal SDK
+ */
+function isOneSignalSDKInitialized(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  
+  try {
+    // Проверяем, есть ли глобальный объект OneSignal и инициализирован ли он
+    const globalOneSignal = (window as any).OneSignal;
+    if (globalOneSignal && globalOneSignal.initialized) {
+      return true;
+    }
+    
+    // Альтернативная проверка через react-onesignal
+    if (OneSignal && (OneSignal as any).initialized) {
+      return true;
+    }
+    
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Инициализировать OneSignal
  */
 export async function initializeOneSignal(): Promise<boolean> {
+  // Проверяем наш флаг
   if (oneSignalInitialized) {
+    return true;
+  }
+
+  // Проверяем, инициализирован ли SDK
+  if (isOneSignalSDKInitialized()) {
+    console.log("✅ OneSignal SDK уже инициализирован");
+    oneSignalInitialized = true;
     return true;
   }
 
@@ -26,6 +61,23 @@ export async function initializeOneSignal(): Promise<boolean> {
   if (!appId) {
     console.error("❌ VITE_ONESIGNAL_APP_ID не найден в переменных окружения");
     return false;
+  }
+
+  // Проверяем, на каком домене мы находимся
+  const currentHost = window.location.hostname;
+  const isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost.startsWith('192.168.') || currentHost.startsWith('10.') || currentHost.startsWith('172.');
+  const allowedDomain = 'quirkynest.ru';
+  const isAllowedDomain = currentHost === allowedDomain || currentHost.endsWith(`.${allowedDomain}`);
+
+  // Если мы на localhost и домен не разрешен в OneSignal, пропускаем инициализацию
+  if (isLocalhost && !isAllowedDomain) {
+    console.warn("⚠️ OneSignal не настроен для localhost. Инициализация пропущена.");
+    console.warn("💡 Для работы на localhost добавьте localhost в настройки OneSignal:");
+    console.warn("   OneSignal Dashboard → Settings → Web Push → Configure → Allowed Domains");
+    console.warn("   Или используйте продакшен домен для тестирования уведомлений.");
+    // Помечаем как "инициализирован", чтобы не пытаться снова
+    oneSignalInitialized = true;
+    return false; // Возвращаем false, чтобы показать, что инициализация не прошла
   }
 
   try {
@@ -48,7 +100,23 @@ export async function initializeOneSignal(): Promise<boolean> {
     oneSignalInitialized = true;
     console.log("✅ OneSignal инициализирован");
     return true;
-  } catch (error) {
+  } catch (error: any) {
+    // Если ошибка о домене, пропускаем инициализацию
+    if (error?.message?.includes("Can only be used on") || error?.message?.includes("domain")) {
+      console.warn("⚠️ OneSignal не настроен для текущего домена:", currentHost);
+      console.warn("💡 Добавьте домен в настройки OneSignal:");
+      console.warn("   OneSignal Dashboard → Settings → Web Push → Configure → Allowed Domains");
+      oneSignalInitialized = true; // Помечаем как "инициализирован", чтобы не пытаться снова
+      return false;
+    }
+    
+    // Если ошибка "SDK already initialized", считаем что инициализация успешна
+    if (error?.message?.includes("already initialized") || error?.message?.includes("SDK already initialized")) {
+      console.log("✅ OneSignal SDK уже был инициализирован");
+      oneSignalInitialized = true;
+      return true;
+    }
+    
     console.error("❌ Ошибка при инициализации OneSignal:", error);
     return false;
   }
@@ -231,6 +299,12 @@ export function setupOneSignalNotificationListener(navigate: (path: string) => v
  * Инициализировать уведомления OneSignal при загрузке приложения
  */
 export async function initializeOneSignalNotifications(navigate: (path: string) => void) {
+  // Проверяем, не инициализированы ли уже уведомления
+  if (oneSignalNotificationsInitialized) {
+    console.log("✅ Система уведомлений OneSignal уже инициализирована");
+    return;
+  }
+
   console.log("🚀 Инициализация системы уведомлений OneSignal...");
 
   // Проверяем, что мы в браузере
@@ -242,7 +316,9 @@ export async function initializeOneSignalNotifications(navigate: (path: string) 
   // Инициализируем OneSignal
   const initialized = await initializeOneSignal();
   if (!initialized) {
-    console.warn("⚠️ OneSignal не инициализирован");
+    console.warn("⚠️ OneSignal не инициализирован (возможно, не настроен для текущего домена)");
+    // Помечаем как инициализированный, чтобы не пытаться снова
+    oneSignalNotificationsInitialized = true;
     return;
   }
 
@@ -253,10 +329,12 @@ export async function initializeOneSignalNotifications(navigate: (path: string) 
     console.log("✅ Player ID получен, настраиваем слушатели...");
     // Настраиваем обработчики
     setupOneSignalNotificationListener(navigate);
+    oneSignalNotificationsInitialized = true;
     console.log("✅ Система уведомлений OneSignal инициализирована");
   } else {
     console.warn("⚠️ Player ID не получен, но слушатели все равно настроим");
     setupOneSignalNotificationListener(navigate);
+    oneSignalNotificationsInitialized = true;
   }
 }
 

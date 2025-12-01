@@ -25,22 +25,26 @@ const AppContent = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [notificationsInitialized, setNotificationsInitialized] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsAuthenticated(Boolean(user));
       setIsAuthReady(true);
       
-      // Инициализируем уведомления после авторизации
-      if (user) {
+      // Инициализируем уведомления после авторизации (только один раз)
+      if (user && !notificationsInitialized) {
+        setNotificationsInitialized(true);
         initializeNotifications((path: string) => navigate(path)).catch((error) => {
           console.error("Ошибка при инициализации уведомлений:", error);
+          // Сбрасываем флаг при ошибке, чтобы можно было попробовать снова
+          setNotificationsInitialized(false);
         });
       }
     });
 
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate, notificationsInitialized]);
 
   if (!isAuthReady) {
     return (

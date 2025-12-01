@@ -28,14 +28,10 @@ export async function sendOrderNotification(
     console.log("   Заказ:", orderId);
     console.log("   Заголовок:", title);
 
-    // Получаем OneSignal Player ID получателя
+    // Получаем OneSignal Player ID получателя (если есть)
     const playerId = await getUserOneSignalId(targetUserUid);
-    
     if (!playerId) {
-      console.warn(`⚠️ OneSignal Player ID не найден для пользователя ${targetUserUid}`);
-      // Все равно сохраняем уведомление в Firestore для истории
-      await saveNotificationToFirestore(targetUserUid, orderId, title, body, status);
-      return false;
+      console.warn(`⚠️ OneSignal Player ID не найден для пользователя ${targetUserUid}. Попробуем отправить через API без него.`);
     }
 
     // Вызываем API endpoint для отправки уведомления
@@ -48,7 +44,7 @@ export async function sendOrderNotification(
       },
       body: JSON.stringify({
         targetUserUid,
-        playerId,
+        playerId: playerId || undefined,
         orderId,
         title,
         body,
