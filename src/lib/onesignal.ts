@@ -68,9 +68,21 @@ export async function initializeOneSignal(): Promise<boolean> {
 
   // Проверяем, на каком домене мы находимся
   const currentHost = window.location.hostname;
-  const isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost.startsWith('192.168.') || currentHost.startsWith('10.') || currentHost.startsWith('172.');
-  const allowedDomain = 'quirkynest.ru';
-  const isAllowedDomain = currentHost === allowedDomain || currentHost.endsWith(`.${allowedDomain}`);
+  const isLocalhost =
+    currentHost === "localhost" ||
+    currentHost === "127.0.0.1" ||
+    currentHost.startsWith("192.168.") ||
+    currentHost.startsWith("10.") ||
+    currentHost.startsWith("172.");
+
+  const allowedDomains = [
+    "quirkynest.ru",
+    "rulettt.vercel.app",
+  ];
+
+  const isAllowedDomain = allowedDomains.some(
+    (domain) => currentHost === domain || currentHost.endsWith(`.${domain}`)
+  );
 
   // OneSignal SDK v16 поддерживает localhost из коробки через allowLocalhostAsSecureOrigin
   // Разрешаем инициализацию на localhost и разрешенных доменах
