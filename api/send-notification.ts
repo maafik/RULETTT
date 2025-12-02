@@ -212,6 +212,23 @@ export default async function handler(
         console.error('   - Убедитесь, что ключ активен и не отозван');
       }
       
+      // Для 403 ошибки возвращаем более детальную информацию
+      if (response.status === 403) {
+        return res.status(403).json({ 
+          error: 'OneSignal API authentication failed',
+          message: 'REST API Key is invalid, revoked, or missing',
+          details: errorData,
+          status: 403,
+          statusText: 'Forbidden',
+          troubleshooting: {
+            step1: 'Check ONESIGNAL_REST_API_KEY in Vercel Environment Variables',
+            step2: 'Verify the key is active in OneSignal Dashboard → Settings → Keys & IDs',
+            step3: 'Ensure the key has permission to send notifications',
+            step4: 'Redeploy the project after updating the key',
+          },
+        });
+      }
+
       return res.status(response.status).json({ 
         error: 'Failed to send notification via OneSignal',
         details: errorData,

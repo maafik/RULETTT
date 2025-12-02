@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "link-profile": "node scripts/link-musician-profile.cjs",
     "create-musician": "node scripts/create-musician-doc.cjs",
+    "send-test-message": "node scripts/send-test-message.cjs",
     "clear-orders": "node scripts/clear-orders.cjs",
     "check-onesignal": "node scripts/check-onesignal-setup.cjs",
     "save-player-id": "node scripts/save-onesignal-player-id.cjs",

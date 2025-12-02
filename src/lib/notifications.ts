@@ -62,6 +62,19 @@ export async function sendOrderNotification(
           await saveNotificationToFirestore(targetUserUid, orderId, title, body, status);
           return false;
         }
+
+        // Обработка ошибки 403 (Forbidden) - проблема с REST API Key
+        if (response.status === 403) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("❌ Ошибка 403 Forbidden при отправке уведомления:", errorData);
+          console.error("💡 Проблема с OneSignal REST API Key:");
+          console.error("   1. Проверьте ONESIGNAL_REST_API_KEY в Vercel Environment Variables");
+          console.error("   2. Убедитесь, что ключ активен в OneSignal Dashboard");
+          console.error("   3. Передеплойте проект после обновления ключа");
+          // Сохраняем уведомление в Firestore для истории
+          await saveNotificationToFirestore(targetUserUid, orderId, title, body, status);
+          return false;
+        }
         
         const errorData = await response.json().catch(() => ({}));
         console.error("❌ Ошибка при отправке уведомления:", errorData);

@@ -30,7 +30,7 @@ if (!userUid || !playerId) {
 }
 
 // Загружаем service account
-const serviceAccountPath = path.join(__dirname, '..', 'frebaze-94560-firebase-adminsdk-fbsvc-80df5106db.json');
+const serviceAccountPath = path.join(__dirname, '..', 'frebaze-94560-firebase-adminsdk-fbsvc-58dc784745.json');
 
 if (!fs.existsSync(serviceAccountPath)) {
   console.error('❌ Файл service account не найден:', serviceAccountPath);
