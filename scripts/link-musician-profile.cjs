@@ -2,7 +2,7 @@ const admin = require("firebase-admin");
 const path = require("path");
 
 // Инициализация Firebase Admin SDK
-const serviceAccount = require(path.join(__dirname, "..", "frebaze-94560-firebase-adminsdk-fbsvc-80df5106db.json"));
+const serviceAccount = require(path.join(__dirname, "..", "frebaze-94560-firebase-adminsdk-fbsvc-58dc784745.json"));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -11,15 +11,18 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // UID пользователя и имя музыканта
-const USER_UID = "tw2mIULtdwa4D5TZxxtgsSagpED3";
+const NEW_USER_UID = "DypkhitMEzLyPzSBTLoPMGYQxHM2";
 const MUSICIAN_NAME = "Анна Смирнова";
 
 async function linkMusicianProfile() {
   try {
-    console.log(`Связываем UID ${USER_UID} с профилем музыканта "${MUSICIAN_NAME}"...`);
+    console.log(`\n✅ Создание привязки для "${MUSICIAN_NAME}"...\n`);
+    console.log(`ℹ️  Старая привязка уже удалена вручную\n`);
     
-    // Создаем связь в Firestore
-    const userProfileRef = db.collection("userProfiles").doc(USER_UID);
+    // 2. Создаем новую привязку
+    console.log(`\n✅ Создание новой привязки для UID ${NEW_USER_UID}...`);
+    
+    const userProfileRef = db.collection("userProfiles").doc(NEW_USER_UID);
     
     await userProfileRef.set({
       musicianName: MUSICIAN_NAME,
@@ -28,25 +31,25 @@ async function linkMusicianProfile() {
     });
     
     console.log("✓ Связь успешно создана в userProfiles!");
-    console.log(`✓ Пользователь ${USER_UID} теперь связан с профилем "${MUSICIAN_NAME}"`);
+    console.log(`✓ Пользователь ${NEW_USER_UID} теперь связан с профилем "${MUSICIAN_NAME}"`);
     
-    // Также создаем обратную связь: имя музыканта -> UID
+    // 3. Обновляем обратную связь: имя музыканта -> новый UID
     const musicianRef = db.collection("musicians").doc(encodeURIComponent(MUSICIAN_NAME));
     
     await musicianRef.set({
-      uid: USER_UID,
+      uid: NEW_USER_UID,
       linkedAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
-    console.log("✓ Обратная связь также создана в musicians!");
-    console.log("\n✓ Коллекции созданы в Firestore:");
-    console.log("  - userProfiles/{UID}");
-    console.log("  - musicians/{musicianName}");
+    console.log("✓ Обратная связь обновлена в musicians!");
+    console.log("\n✅ Привязка успешно создана:");
+    console.log(`  - UID: ${NEW_USER_UID}`);
+    console.log(`  - Музыкант: ${MUSICIAN_NAME}`);
     console.log("\n✓ Теперь можно создавать заказы в коллекции 'orders'");
     
     process.exit(0);
   } catch (error) {
-    console.error("Ошибка при создании связи:", error);
+    console.error("❌ Ошибка при обновлении связи:", error);
     process.exit(1);
   }
 }

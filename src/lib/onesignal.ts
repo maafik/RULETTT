@@ -103,6 +103,9 @@ export async function initializeOneSignal(): Promise<boolean> {
       notifyButton: {
         enable: false, // Скрываем кнопку подписки, используем свою
       },
+      // Явно указываем путь к service worker для веб-версии
+      serviceWorkerPath: "/OneSignalSDKWorker.js",
+      serviceWorkerParam: { scope: "/" },
     };
 
     // Для нативных приложений добавляем дополнительные опции

@@ -1,7 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!OneSignalSDKWorker\\.js|OneSignalSDK\\.sw\\.js|api/).*)",
       "destination": "/"
     }
   ],
@@ -9,6 +9,21 @@
     "api/send-notification.ts": {
       "maxDuration": 10
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/OneSignalSDKWorker.js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    }
+  ]
 }
 
