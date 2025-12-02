@@ -1,7 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/((?!OneSignalSDKWorker\\.js|OneSignalSDK\\.sw\\.js|OneSignalSDKWorker\\.js\\?|OneSignalSDK\\.sw\\.js\\?|api/).*)",
+      "source": "/((?!OneSignalSDKWorker\\.js|OneSignalSDK\\.sw\\.js|OneSignalSDKWorker\\.js\\?|OneSignalSDK\\.sw\\.js\\?|OneSignalSDKWorker|OneSignalSDK\\.sw|api/).*)",
       "destination": "/"
     }
   ],

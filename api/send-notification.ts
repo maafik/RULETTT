@@ -155,11 +155,34 @@ export default async function handler(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('❌ Ошибка OneSignal API:', errorData);
+      const errorText = await response.text();
+      let errorData: any = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      
+      console.error('❌ Ошибка OneSignal API:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        appId: oneSignalAppId,
+        hasApiKey: !!oneSignalRestApiKey,
+        apiKeyLength: oneSignalRestApiKey?.length || 0,
+      });
+      
+      // Если 403, это проблема с авторизацией
+      if (response.status === 403) {
+        console.error('💡 403 Forbidden - проверьте ONESIGNAL_REST_API_KEY в Vercel Environment Variables');
+        console.error('💡 Убедитесь, что REST API Key правильный и имеет права на отправку уведомлений');
+      }
+      
       return res.status(response.status).json({ 
         error: 'Failed to send notification via OneSignal',
-        details: errorData 
+        details: errorData,
+        status: response.status,
+        statusText: response.statusText,
       });
     }
 
