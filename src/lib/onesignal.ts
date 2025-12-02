@@ -97,9 +97,9 @@ export async function initializeOneSignal(): Promise<boolean> {
   }
 
   try {
-    // Определяем правильный путь к service worker
-    const serviceWorkerPath = typeof window !== "undefined" 
-      ? new URL("/OneSignalSDKWorker.js", window.location.origin).href
+    // Формируем абсолютный URL к service worker
+    const serviceWorkerUrl = typeof window !== "undefined"
+      ? `${window.location.protocol}//${window.location.host}/OneSignalSDKWorker.js`
       : "/OneSignalSDKWorker.js";
 
     const initOptions: any = {
@@ -108,8 +108,8 @@ export async function initializeOneSignal(): Promise<boolean> {
       notifyButton: {
         enable: false, // Скрываем кнопку подписки, используем свою
       },
-      // Явно указываем абсолютный URL к service worker
-      serviceWorkerPath: serviceWorkerPath,
+      // Используем абсолютный URL для надежности
+      serviceWorkerPath: serviceWorkerUrl,
       serviceWorkerParam: { scope: "/" },
     };
 
@@ -119,7 +119,9 @@ export async function initializeOneSignal(): Promise<boolean> {
       initOptions.serviceWorkerPath = "OneSignalSDKWorker.js";
     }
 
-    console.log("🔧 OneSignal инициализация с serviceWorkerPath:", serviceWorkerPath);
+    console.log("🔧 OneSignal инициализация с serviceWorkerPath:", serviceWorkerUrl);
+
+    await OneSignal.init(initOptions);
 
     await OneSignal.init(initOptions);
 

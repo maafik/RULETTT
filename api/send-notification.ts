@@ -107,12 +107,32 @@ export default async function handler(
     const oneSignalAppId = process.env.ONESIGNAL_APP_ID;
     const oneSignalRestApiKey = process.env.ONESIGNAL_REST_API_KEY;
 
+    // Детальная проверка credentials
+    console.log('🔍 Проверка OneSignal credentials:', {
+      hasAppId: !!oneSignalAppId,
+      appId: oneSignalAppId,
+      hasApiKey: !!oneSignalRestApiKey,
+      apiKeyLength: oneSignalRestApiKey?.length || 0,
+      apiKeyPrefix: oneSignalRestApiKey?.substring(0, 10) || 'N/A',
+    });
+
     if (!oneSignalAppId || !oneSignalRestApiKey) {
       console.error('❌ OneSignal credentials не настроены');
+      console.error('💡 Проверьте Vercel Environment Variables:');
+      console.error('   - ONESIGNAL_APP_ID:', oneSignalAppId ? '✅' : '❌');
+      console.error('   - ONESIGNAL_REST_API_KEY:', oneSignalRestApiKey ? '✅' : '❌');
       return res.status(500).json({ 
         error: 'OneSignal credentials not configured',
-        required: ['ONESIGNAL_APP_ID', 'ONESIGNAL_REST_API_KEY']
+        required: ['ONESIGNAL_APP_ID', 'ONESIGNAL_REST_API_KEY'],
+        hasAppId: !!oneSignalAppId,
+        hasApiKey: !!oneSignalRestApiKey,
       });
+    }
+
+    // Проверяем формат REST API Key
+    if (!oneSignalRestApiKey.startsWith('os_v2_app_')) {
+      console.error('⚠️ REST API Key имеет неправильный формат (должен начинаться с os_v2_app_)');
+      console.error('💡 Проверьте, что скопировали полный ключ из OneSignal Dashboard');
     }
 
     // Отправляем уведомление через OneSignal REST API
@@ -170,12 +190,26 @@ export default async function handler(
         appId: oneSignalAppId,
         hasApiKey: !!oneSignalRestApiKey,
         apiKeyLength: oneSignalRestApiKey?.length || 0,
+        apiKeyPrefix: oneSignalRestApiKey?.substring(0, 15) || 'N/A',
+        playerId: oneSignalPlayerId,
+        payload: {
+          app_id: notificationPayload.app_id,
+          player_ids_count: notificationPayload.include_player_ids?.length || 0,
+        },
       });
       
       // Если 403, это проблема с авторизацией
       if (response.status === 403) {
-        console.error('💡 403 Forbidden - проверьте ONESIGNAL_REST_API_KEY в Vercel Environment Variables');
-        console.error('💡 Убедитесь, что REST API Key правильный и имеет права на отправку уведомлений');
+        console.error('💡 403 Forbidden - проблема с авторизацией OneSignal API');
+        console.error('💡 Возможные причины:');
+        console.error('   1. REST API Key неправильный или устарел');
+        console.error('   2. REST API Key не установлен в Vercel Environment Variables');
+        console.error('   3. REST API Key отозван в OneSignal Dashboard');
+        console.error('   4. REST API Key не имеет прав на отправку уведомлений');
+        console.error('💡 Проверьте:');
+        console.error('   - Vercel Dashboard → Settings → Environment Variables → ONESIGNAL_REST_API_KEY');
+        console.error('   - OneSignal Dashboard → Settings → Keys & IDs → REST API Key');
+        console.error('   - Убедитесь, что ключ активен и не отозван');
       }
       
       return res.status(response.status).json({ 
