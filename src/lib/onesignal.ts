@@ -10,6 +10,46 @@ let oneSignalNotificationsInitialized = false;
 // Проверка, запущено ли приложение в нативном режиме
 const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
 
+// Динамический импорт OneSignal Capacitor для нативных платформ
+let OneSignalCapacitor: any = null;
+
+// Функция для безопасной загрузки OneSignal Cordova плагина для Capacitor
+const loadOneSignalCapacitor = async (): Promise<void> => {
+  if (!isNative) {
+    return; // Не загружаем для веб
+  }
+  
+  try {
+    // Используем динамический импорт с проверкой наличия модуля
+    // Это предотвратит ошибки при сборке веб-версии
+    const modulePath = "onesignal-cordova-plugin";
+    
+    // Проверяем, доступен ли модуль (только во время выполнения)
+    if (typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform()) {
+      try {
+        // @ts-ignore - динамический импорт, пакет может быть не установлен
+        const module = await import(/* @vite-ignore */ modulePath);
+        OneSignalCapacitor = module;
+        console.log("✅ OneSignal Cordova плагин загружен для нативной платформы");
+      } catch (importError) {
+        // Пакет не установлен или недоступен - это нормально для веб-сборки
+        console.warn("⚠️ OneSignal Cordova плагин не найден. Установите: npm install onesignal-cordova-plugin");
+        console.warn("   Это нормально для веб-версии приложения");
+      }
+    }
+  } catch (error) {
+    // Игнорируем ошибки при сборке веб-версии
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("⚠️ OneSignal Cordova плагин недоступен (это нормально для веб-сборки)");
+    }
+  }
+};
+
+// Загружаем только если в нативном режиме
+if (isNative) {
+  loadOneSignalCapacitor();
+}
+
 /**
  * Проверить, инициализирован ли OneSignal SDK
  */
@@ -97,7 +137,40 @@ export async function initializeOneSignal(): Promise<boolean> {
   }
 
   try {
-    // Формируем абсолютный URL к service worker
+    // Для нативных приложений используем OneSignal Cordova плагин
+    if (isNative) {
+      console.log("📱 Инициализация OneSignal для нативной платформы:", Capacitor.getPlatform());
+      
+      // Пробуем использовать OneSignal Cordova плагин
+      if (OneSignalCapacitor) {
+        try {
+          // OneSignal Cordova плагин использует глобальный объект window.OneSignal
+          if (typeof window !== "undefined" && (window as any).OneSignal) {
+            (window as any).OneSignal.setAppId(appId);
+            console.log("✅ OneSignal Cordova плагин инициализирован для нативной платформы");
+            oneSignalInitialized = true;
+            return true;
+          } else {
+            // Пробуем использовать импортированный модуль
+            if (OneSignalCapacitor.setAppId) {
+              await OneSignalCapacitor.setAppId(appId);
+              console.log("✅ OneSignal Cordova плагин инициализирован для нативной платформы");
+              oneSignalInitialized = true;
+              return true;
+            }
+          }
+        } catch (capError: any) {
+          console.warn("⚠️ Ошибка инициализации OneSignal Cordova плагина:", capError);
+          console.warn("💡 Пробуем использовать веб-версию...");
+        }
+      } else {
+        console.warn("⚠️ OneSignal Cordova плагин не загружен");
+        console.warn("💡 Установите: npm install onesignal-cordova-plugin");
+        console.warn("💡 Затем выполните: npm run cap:sync");
+      }
+    }
+
+    // Для веб-приложений используем стандартную инициализацию
     const serviceWorkerUrl = typeof window !== "undefined"
       ? `${window.location.protocol}//${window.location.host}/OneSignalSDKWorker.js`
       : "/OneSignalSDKWorker.js";
@@ -113,15 +186,7 @@ export async function initializeOneSignal(): Promise<boolean> {
       serviceWorkerParam: { scope: "/" },
     };
 
-    // Для нативных приложений добавляем дополнительные опции
-    if (isNative) {
-      initOptions.serviceWorkerParam = { scope: "/push/onesignal/" };
-      initOptions.serviceWorkerPath = "OneSignalSDKWorker.js";
-    }
-
-    console.log("🔧 OneSignal инициализация с serviceWorkerPath:", serviceWorkerUrl);
-
-    await OneSignal.init(initOptions);
+    console.log("🔧 OneSignal инициализация (веб) с serviceWorkerPath:", serviceWorkerUrl);
 
     await OneSignal.init(initOptions);
 
@@ -169,11 +234,67 @@ export async function requestNotificationPermission(): Promise<string | null> {
     }
 
     // Запрашиваем разрешение
-    const permission = await OneSignal.Notifications.requestPermission();
-    console.log("📋 Разрешение:", permission);
+    let permission: boolean;
+    
+    // Для нативных приложений используем OneSignal Cordova плагин
+    if (isNative && OneSignalCapacitor) {
+      try {
+        // OneSignal Cordova плагин использует глобальный объект window.OneSignal
+        if (typeof window !== "undefined" && (window as any).OneSignal) {
+          (window as any).OneSignal.promptForPushNotificationsWithUserResponse((response: boolean) => {
+            permission = response;
+            console.log("📋 Разрешение (нативная платформа):", permission);
+          });
+        } else if (OneSignalCapacitor.promptForPushNotificationsWithUserResponse) {
+          permission = await OneSignalCapacitor.promptForPushNotificationsWithUserResponse();
+          console.log("📋 Разрешение (нативная платформа):", permission);
+        } else {
+          permission = false;
+        }
+      } catch (capError: any) {
+        console.error("❌ Ошибка запроса разрешения OneSignal Cordova плагина:", capError);
+        permission = false;
+      }
+    } else {
+      // Для веб-приложений используем стандартный способ
+      permission = await OneSignal.Notifications.requestPermission();
+      console.log("📋 Разрешение (веб):", permission);
+    }
 
     if (permission) {
-      // Получаем Player ID через User PushSubscription
+      // Для нативных приложений используем OneSignal Cordova плагин
+      if (isNative && OneSignalCapacitor) {
+        try {
+          // OneSignal Cordova плагин использует глобальный объект window.OneSignal
+          if (typeof window !== "undefined" && (window as any).OneSignal) {
+            const userId = (window as any).OneSignal.getUserId();
+            
+            if (userId) {
+              console.log("✅ Player ID получен (нативная платформа):", userId.substring(0, 20) + "...");
+              await saveUserOneSignalId(userId);
+              return userId;
+            }
+          }
+          
+          // Альтернативный способ через модуль
+          if (OneSignalCapacitor.getUserId) {
+            const userId = await OneSignalCapacitor.getUserId();
+            if (userId) {
+              console.log("✅ Player ID получен (нативная платформа):", userId.substring(0, 20) + "...");
+              await saveUserOneSignalId(userId);
+              return userId;
+            }
+          }
+          
+          console.warn("⚠️ Player ID не получен от OneSignal Cordova плагина");
+          return null;
+        } catch (capError: any) {
+          console.error("❌ Ошибка получения Player ID от OneSignal Cordova плагина:", capError);
+          return null;
+        }
+      }
+      
+      // Для веб-приложений используем стандартный способ
       // Ждем немного, чтобы подписка была готова
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -181,7 +302,7 @@ export async function requestNotificationPermission(): Promise<string | null> {
       const userId = pushSubscription?.id;
       
       if (userId) {
-        console.log("✅ Player ID получен:", userId.substring(0, 20) + "...");
+        console.log("✅ Player ID получен (веб):", userId.substring(0, 20) + "...");
         // Сохраняем Player ID в Firestore
         await saveUserOneSignalId(userId);
         return userId;
@@ -309,9 +430,43 @@ export function setupOneSignalNotificationListener(navigate: (path: string) => v
 
   console.log("👂 Настраиваем слушатель уведомлений OneSignal...");
 
-  // Обработка кликов по уведомлениям
+  // Для нативных приложений используем OneSignal Cordova плагин
+  if (isNative && OneSignalCapacitor) {
+    try {
+      // OneSignal Cordova плагин использует глобальный объект window.OneSignal
+      if (typeof window !== "undefined" && (window as any).OneSignal) {
+        (window as any).OneSignal.setNotificationOpenedHandler((jsonData: any) => {
+          console.log("📬 Получено уведомление OneSignal (нативная платформа):", jsonData);
+          
+          const data = jsonData?.notification?.payload?.additionalData as { orderId?: string; status?: string };
+          
+          if (data?.orderId) {
+            navigate(`/order/${data.orderId}`);
+          }
+        });
+        console.log("✅ Слушатель уведомлений OneSignal настроен (нативная платформа)");
+        return;
+      } else if (OneSignalCapacitor.setNotificationOpenedHandler) {
+        OneSignalCapacitor.setNotificationOpenedHandler((event: any) => {
+          console.log("📬 Получено уведомление OneSignal (нативная платформа):", event);
+          
+          const data = event.notification?.additionalData as { orderId?: string; status?: string };
+          
+          if (data?.orderId) {
+            navigate(`/order/${data.orderId}`);
+          }
+        });
+        console.log("✅ Слушатель уведомлений OneSignal настроен (нативная платформа)");
+        return;
+      }
+    } catch (capError: any) {
+      console.warn("⚠️ Ошибка настройки слушателя OneSignal Cordova плагина:", capError);
+    }
+  }
+
+  // Для веб-приложений используем стандартный способ
   OneSignal.Notifications.addEventListener("click", (event) => {
-    console.log("📬 Получено уведомление OneSignal:", event);
+    console.log("📬 Получено уведомление OneSignal (веб):", event);
     
     const data = event.notification.additionalData as { orderId?: string; status?: string };
     
@@ -320,7 +475,7 @@ export function setupOneSignalNotificationListener(navigate: (path: string) => v
     }
   });
 
-  console.log("✅ Слушатель уведомлений OneSignal настроен");
+  console.log("✅ Слушатель уведомлений OneSignal настроен (веб)");
 }
 
 /**

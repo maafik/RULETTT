@@ -20,6 +20,9 @@
     "StatusBar": {
       "style": "dark",
       "backgroundColor": "#ffffff"
+    },
+    "OneSignal": {
+      "appId": "0ae1d329-0160-4eac-aacc-df8f50479606"
     }
   }
 }

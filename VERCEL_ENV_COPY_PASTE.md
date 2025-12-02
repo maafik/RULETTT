@@ -46,13 +46,13 @@
 ### 🔥 Firebase Admin (сервер - для API)
 
 **Key:** `FIREBASE_PROJECT_ID`  
-**Value:** `frebaze-94560` (или ваш project ID)
+**Value:** `frebaze-94560`
 
 **Key:** `FIREBASE_CLIENT_EMAIL`  
-**Value:** `firebase-adminsdk-xxxxx@frebaze-94560.iam.gserviceaccount.com` (из Service Account JSON → client_email)
+**Value:** `firebase-adminsdk-fbsvc@frebaze-94560.iam.gserviceaccount.com`
 
 **Key:** `FIREBASE_PRIVATE_KEY`  
-**Value:** `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\n-----END PRIVATE KEY-----\n` (из Service Account JSON → private_key, скопируйте полностью со всеми \n)
+**Value:** `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCfkQJTBX2orOWu\ndO/iXnw/Wf1GapPB5if2P3O2YkWk1wuyTwKvXhf9yAoulj9FIe9/FzVGy2vjWRrR\nqccE5JD271QjqJZruRKUaDHut/xyDvmpzxlaPWlPDqAm/PqWHaFH/jzJH0NVnSlC\n39jtxeKnmTIbrFTzG7RqFRkIL6wAyLMndtZ8rdVOcU3Ye3G20NBMWcOO+uaF/0Hh\nTqjN4LkeHuSyhtfRtMj+CBCn3HTaX00Yhh0BVhOGaIR3wCXczalIUPUQV32mfufZ\nRMqNpWyQtVAXDDvbY+OPOYkH3fHY9oZ2O0sh/zXBa5ggpgX51OI0a/iAslc4UcL+\nuuSPQS4jAgMBAAECggEAGHx/N9BK5TyLDoeBXGKVfH9Jv6mRPRsdnMtF7YINH+uk\nLtuzFMhCtD4jWdzSnsBDaWRdV5zV1JCS7gO4t8Z/fHVjmwk+9A71i/KlXvW69qHX\nrDhMsq1j4K7k4rbFmY24dzzLhS2X/qZcc5e4SVypmICI0PhUHO5udC0Cp1/xbDkh\n9LixwFmqt9j19ZF6H3Fl5w8N6kooTP6mc4kGvNoBYpjPLNxGM6razR3XTdMkZbjr\n08qVmE9nokozQQo01iwv6lcjResLqPI8QIrOgavkx2n9u4s01OJdduaqXrhaqksB\n+tDvvKH/CRv5cnxaLA4hUsfIc8wVX7a3zzdY95wGgQKBgQDfe7Gz3wKC2bpcwz2C\nbWrlAfugof4RCuMTNSH2xHeUcVy9SU8fxQg7F1DNkGw0lVk+XpKH5cwv9+aiC3SW\nlodhQ1f7GEn6JesOZ99G374gGVWIvJZwXhSw8SY7Uo2AHhXgnMcbfeoYaZdmC3Y5\nnMoRzqC/ky/6UKHGBM4FjxfuYwKBgQC2yIsCdxgqYHXvUCiwDwrOpGCbMQBU53+S\nhwYSy0Ghl5m2PzSjJws8EH8ZDG48BaiFrzl4x2kAqM525Tg+FtNztkpDiD8pV1ff\nYS4mEcdD1EpXirLgidQDNrMgxUGLF5EyNldH3AoGVEPToiK5InZ6il6tPe7fcWVq\n3eU63lTtQQKBgBHpszuso2Hjm8l1qMd8h7Xla8rbUScCjWLrvlYuNzuBvqI5bwsn\n2toJq2NesR2h3u5d3DbiV3R81VKlwmmTlTRZloK81qkjQuz7rGzc4DtobG+yVgiZ\nseTg32Sf4FGll7FSP69Xb10XkZgPUSGbDKNSwZW5cX4J2n2pwu21I4DrAoGAECPX\nOol/pcZMw6wFW76ISsTzDuEd0WF7v1mS7Lfr/LPhS9l68WkyMcSXJIQXe89YGS3m\n2kZpfDhrus300G69jzsqhZoTUbg3ty7in1P0j4XAZsiFkRQ6l2oOGTex2PFkzdVE\nkcDZVcO9FYP8ovJrGdj8ETolzK87sFsVscQOJcECgYEAkNc1w2kdC/EQZhLav6xy\nuNK0e4vZF3dJMvH1xZtufmmOh6kkrc+/3DgQtlcTe8C6wli8uJu7cDPUJ4QDL/Yf\nw2zA8h9+HjelQb+zhxuaFbD7GXt1eU4TxUVXIau/raGResVasAFLZIv0N2e8OvwL\n38UF+AwJQ+Ano0dADArL0iI=\n-----END PRIVATE KEY-----\n`
 
 ---
 
