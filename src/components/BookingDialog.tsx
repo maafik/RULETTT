@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,23 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [comment, setComment] = useState("");
+  const scrollPositionRef = useRef<number>(0);
+
+  // Сохраняем и восстанавливаем позицию скролла
+  useEffect(() => {
+    if (open) {
+      // Сохраняем текущую позицию скролла
+      scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
+    } else {
+      // Восстанавливаем позицию скролла при закрытии
+      setTimeout(() => {
+        window.scrollTo({
+          top: scrollPositionRef.current,
+          behavior: 'auto'
+        });
+      }, 100);
+    }
+  }, [open]);
 
   // Заполняем форму при редактировании
   useEffect(() => {

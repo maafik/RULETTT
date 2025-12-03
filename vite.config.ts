@@ -18,9 +18,5 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    rollupOptions: {
-      // Исключаем OneSignal Cordova плагин из веб-сборки (он нужен только для нативных платформ)
-      external: ["onesignal-cordova-plugin"],
-    },
   },
 }));

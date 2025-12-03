@@ -8,10 +8,18 @@ import { getOrderById } from "@/lib/firebase-db";
 import { sendChatMessage, subscribeToChatMessages } from "@/lib/firebase-db";
 import { getUserProfile } from "@/lib/firebase-db";
 import { auth } from "@/lib/firebase";
-import type { ChatMessage } from "@/components/ChatDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+type ChatMessage = {
+  id: string;
+  text: string;
+  sender: "client" | "musician";
+  senderUid?: string;
+  time: string;
+  createdAt?: number;
+};
 
 const ChatPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -146,8 +154,8 @@ const ChatPage = () => {
   };
 
   const handleBack = () => {
-    if (order) {
-      navigate(`/order/${order.id}`);
+    if (id) {
+      navigate(`/order/${id}`);
     } else {
       navigate("/orders");
     }

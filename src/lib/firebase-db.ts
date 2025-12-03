@@ -24,6 +24,7 @@ export interface UserProfile {
   musicianName?: string;
   role: "musician" | "customer";
   linkedAt?: number;
+  city?: string;
 }
 
 export interface MusicianProfile {
@@ -45,6 +46,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         musicianName: data.musicianName,
         role: data.role || "customer",
         linkedAt: data.linkedAt?.toMillis?.() || data.linkedAt,
+        city: data.city || "Москва",
       } as UserProfile;
       
       if (profile.role === "musician" || profile.musicianName) {
@@ -54,17 +56,47 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       return profile;
     }
     
-    // Профиль не найден - это нормально для обычных клиентов
+    // Профиль не найден - возвращаем профиль с городом по умолчанию
     // Предупреждение только если это известный музыкант
     if (uid === "JFiWds7FPDZEh5n0h5H235re0vu1") {
       console.warn(`⚠️ Профиль не найден для Дмитрия Волкова (UID: ${uid})`);
       console.warn(`💡 Запустите: npm run link-profile`);
     }
     
-    return null;
+    // Для новых пользователей возвращаем профиль с городом по умолчанию
+    return {
+      role: "customer",
+      city: "Москва",
+    } as UserProfile;
   } catch (error) {
     console.error("❌ Ошибка при получении профиля пользователя:", error);
     return null;
+  }
+}
+
+/**
+ * Создать или обновить профиль пользователя
+ */
+export async function createOrUpdateUserProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
+  try {
+    const profileRef = doc(db, "userProfiles", uid);
+    const snapshot = await getDoc(profileRef);
+    
+    if (snapshot.exists()) {
+      // Обновляем существующий профиль
+      await updateDoc(profileRef, {
+        ...data,
+      });
+    } else {
+      // Создаем новый профиль с городом по умолчанию
+      await setDoc(profileRef, {
+        role: "customer",
+        city: "Москва",
+        ...data,
+      });
+    }
+  } catch (error) {
+    console.error("❌ Ошибка при создании/обновлении профиля пользователя:", error);
   }
 }
 
@@ -569,10 +601,11 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
     });
     console.log(`✅ Статус заказа ${orderId} обновлен с "${oldStatus}" на "${status}" в Firestore`);
 
-    // Отправляем уведомления при изменении статуса
-    if (oldStatus !== status) {
-      await sendStatusChangeNotification(orderId, orderData, oldStatus, status);
+    // Отправляем уведомления (даже если статус уже был обновлен ранее)
+    if (oldStatus === status) {
+      console.log("ℹ️ Статус уже установлен, принудительно уведомляем подписчиков");
     }
+    await sendStatusChangeNotification(orderId, orderData, oldStatus, status);
 
     return true;
   } catch (error) {
@@ -803,19 +836,33 @@ async function sendChatMessageNotification(
     
     // Импортируем функцию уведомлений
     const { notifyChatMessage } = await import("./notifications");
+    const direction: "client-to-musician" | "musician-to-client" =
+      message.sender === "client" ? "client-to-musician" : "musician-to-client";
     
     // Отправляем уведомление
-    const notificationSent = await notifyChatMessage(
+    const notificationResult = await notifyChatMessage(
       targetUserUid,
       orderId,
       senderName,
-      message.text
+      message.text,
+      { direction, musicianName: artistName }
     );
     
-    if (notificationSent) {
-      console.log(`✅ Уведомление о сообщении отправлено пользователю ${targetUserUid}`);
+    if (notificationResult.savedToHistory) {
+      console.log(`✅ Запись уведомления сохранена для пользователя ${targetUserUid}`);
     } else {
-      console.warn(`⚠️ Не удалось отправить уведомление пользователю ${targetUserUid} (Player ID не найден или ошибка API)`);
+      console.warn("⚠️ Не удалось сохранить запись уведомления в Firestore");
+    }
+
+    if (notificationResult.telegram.attempted) {
+      if (notificationResult.telegram.sent) {
+        console.log("✅ Telegram уведомление доставлено музыканту");
+      } else {
+        console.warn(
+          "⚠️ Telegram уведомление не отправлено:",
+          notificationResult.telegram.error || notificationResult.telegram.skippedReason
+        );
+      }
     }
   } catch (error) {
     console.error("❌ Ошибка при отправке уведомления о сообщении:", error);

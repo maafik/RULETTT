@@ -9,7 +9,7 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
       className: "bg-green-500/10 text-green-600 border-green-500/20",
     },
     busy: {
-      label: "Занят на сегодня",
+      label: "Занят",
       className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
     },
     online: {

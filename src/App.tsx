@@ -3,12 +3,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import OrderPage from "./pages/OrderPage";
 import OrdersListPage from "./pages/OrdersListPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import ProfilePage from "./pages/ProfilePage";
+import NotificationsPage from "./pages/NotificationsPage";
+import SettingsPage from "./pages/SettingsPage";
+import HelpPage from "./pages/HelpPage";
+import SupportPage from "./pages/SupportPage";
 import NotFound from "./pages/NotFound";
 import ChatPage from "./pages/ChatPage";
 import MusicianProfilePage from "./pages/MusicianProfilePage";
@@ -17,34 +21,80 @@ import ScrollRestoration from "./components/ScrollRestoration";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
-import { initializeNotifications } from "@/lib/notifications";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [notificationsInitialized, setNotificationsInitialized] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsAuthenticated(Boolean(user));
       setIsAuthReady(true);
       
-      // Инициализируем уведомления после авторизации (только один раз)
-      if (user && !notificationsInitialized) {
-        setNotificationsInitialized(true);
-        initializeNotifications((path: string) => navigate(path)).catch((error) => {
-          console.error("Ошибка при инициализации уведомлений:", error);
-          // Сбрасываем флаг при ошибке, чтобы можно было попробовать снова
-          setNotificationsInitialized(false);
-        });
-      }
     });
 
     return () => unsubscribe();
-  }, [navigate, notificationsInitialized]);
+  }, [navigate]);
+
+  // Добавляем текущую страницу в историю при изменении маршрута
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const currentUrl = window.location.href;
+    // Используем replaceState, чтобы не создавать лишние записи в истории
+    window.history.replaceState({ preventBack: true }, "", currentUrl);
+    // Добавляем новую запись для предотвращения перехода назад
+    window.history.pushState({ preventBack: true }, "", currentUrl);
+  }, [location.pathname]);
+
+  // Обработка кнопки "назад": закрываем диалоги или предотвращаем переход
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Функция для добавления текущей страницы в историю
+    const pushCurrentState = () => {
+      const currentUrl = window.location.href;
+      window.history.pushState({ preventBack: true }, "", currentUrl);
+    };
+
+    const handlePopState = (event: PopStateEvent) => {
+      // Проверяем, есть ли открытые диалоги через Radix UI атрибуты
+      const openDialogs = document.querySelectorAll('[data-state="open"][role="dialog"]');
+      
+      if (openDialogs.length > 0) {
+        // Если есть открытые диалоги, отправляем Escape для их закрытия
+        // Radix UI автоматически обработает это и закроет диалог
+        const escapeEvent = new KeyboardEvent('keydown', {
+          key: 'Escape',
+          code: 'Escape',
+          keyCode: 27,
+          bubbles: true,
+          cancelable: true
+        });
+        document.dispatchEvent(escapeEvent);
+        
+        // Предотвращаем переход назад, возвращаем текущую страницу в историю
+        pushCurrentState();
+        event.preventDefault();
+        return;
+      }
+      
+      // Если диалогов нет, предотвращаем переход назад
+      // Возвращаем текущую страницу в историю
+      pushCurrentState();
+      event.preventDefault();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
   if (!isAuthReady) {
     return (
@@ -83,6 +133,22 @@ const AppContent = () => {
         <Route
           path="/profile"
           element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/notifications"
+          element={isAuthenticated ? <NotificationsPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/settings"
+          element={isAuthenticated ? <SettingsPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/help"
+          element={isAuthenticated ? <HelpPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/support"
+          element={isAuthenticated ? <SupportPage /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/order/:id/profile"

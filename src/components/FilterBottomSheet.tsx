@@ -19,9 +19,11 @@ export interface FilterData {
 }
 
 interface FilterBottomSheetProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onApplyFilters?: (filters: FilterData) => void;
   initialFilters?: FilterData;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const musicianTypes = [
@@ -31,16 +33,24 @@ const musicianTypes = [
   "Инструменталист",
   "Дуэт",
   "Cover band",
+  "Ведущий",
 ];
 
-const FilterBottomSheet = ({ children, onApplyFilters, initialFilters }: FilterBottomSheetProps) => {
+const FilterBottomSheet = ({ children, onApplyFilters, initialFilters, open: controlledOpen, onOpenChange }: FilterBottomSheetProps) => {
   const [date, setDate] = useState<Date | undefined>(initialFilters?.date);
   const [priceRange, setPriceRange] = useState<[number, number]>(
     initialFilters?.priceRange || [5000, 50000]
   );
   const [selectedTypes, setSelectedTypes] = useState<string[]>(initialFilters?.selectedTypes || []);
   const [searchQuery, setSearchQuery] = useState(initialFilters?.searchQuery || "");
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (controlledOpen === undefined) {
+      setInternalOpen(value);
+    }
+    onOpenChange?.(value);
+  };
 
   useEffect(() => {
     if (initialFilters) {
@@ -73,7 +83,7 @@ const FilterBottomSheet = ({ children, onApplyFilters, initialFilters }: FilterB
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>{children}</SheetTrigger>
+      {children && <SheetTrigger asChild>{children}</SheetTrigger>}
       <SheetContent side="bottom" className="h-[80vh] rounded-t-[24px]">
         <SheetHeader className="mb-6">
           <SheetTitle className="text-2xl font-bold">Фильтры</SheetTitle>
@@ -113,7 +123,7 @@ const FilterBottomSheet = ({ children, onApplyFilters, initialFilters }: FilterB
           {/* Musician Type */}
           <div>
             <label className="mb-3 block text-sm font-semibold text-foreground">
-              Какой музыкант нужен
+              Тип исполнителя
             </label>
             <div className="space-y-3">
               {musicianTypes.map((type) => (
@@ -137,11 +147,11 @@ const FilterBottomSheet = ({ children, onApplyFilters, initialFilters }: FilterB
           {/* Price Range */}
           <div>
             <label className="mb-3 block text-sm font-semibold text-foreground">
-              Цена: от {priceRange[0].toLocaleString()} до {priceRange[1].toLocaleString()} ₽
+              Цена: от {priceRange[0].toLocaleString()} ₽
             </label>
             <Slider
-              value={priceRange}
-              onValueChange={(value) => setPriceRange(value as [number, number])}
+              value={[priceRange[0]]}
+              onValueChange={(value) => setPriceRange([value[0], 100000])}
               min={0}
               max={100000}
               step={1000}

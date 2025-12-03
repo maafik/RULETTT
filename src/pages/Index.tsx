@@ -36,6 +36,7 @@ const Index = () => {
   const [visibleCount, setVisibleCount] = useState(8);
   const [isCategorySwitcherOpen, setIsCategorySwitcherOpen] = useState(false);
   const [favoriteMusicians, setFavoriteMusicians] = useState<FavoriteMusician[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { toast } = useToast();
 
   const allMusicians = useMemo<Musician[]>(() => musiciansData, []);
@@ -121,14 +122,72 @@ const Index = () => {
     return () => unsubscribe();
   }, []);
 
+  const handleQuickBooking = () => {
+    setIsFilterOpen(true);
+  };
+
+  const handlePriceFilter = () => {
+    const priceFilter: FilterData = {
+      date: undefined,
+      priceRange: [0, 10000],
+      selectedTypes: [],
+      searchQuery: "",
+      nearby: false,
+    };
+    setFilters(priceFilter);
+    scrollToFilteredSection();
+  };
+
+  const handleLiveInstruments = () => {
+    const liveFilter: FilterData = {
+      date: undefined,
+      priceRange: [0, 100000],
+      selectedTypes: ["Группа", "Инструменталист"],
+      searchQuery: "",
+      nearby: false,
+    };
+    setFilters(liveFilter);
+    scrollToFilteredSection();
+  };
+
+  const handleBudgetBanner = () => {
+    setIsFilterOpen(true);
+  };
+
+  const handleFreeThisWeek = () => {
+    // Устанавливаем фильтр на текущую неделю и скроллим к результатам
+    const weekFilter: FilterData = {
+      date: new Date(), // Можно улучшить, установив дату начала недели
+      priceRange: [0, 100000],
+      selectedTypes: [],
+      searchQuery: "",
+      nearby: false,
+    };
+    setFilters(weekFilter);
+    scrollToFilteredSection();
+  };
+
   const categories = [
     { icon: MapPin, title: "Музыканты рядом", action: () => handleNearbyClick() },
-    { icon: Zap, title: "Быстрая бронь", action: () => {} },
-    { icon: DollarSign, title: "До 10 000 ₽", action: () => {} },
-    { icon: Music, title: "Группы с живыми инструментами", action: () => {} },
+    { icon: Zap, title: "Быстрая бронь", action: () => handleQuickBooking() },
+    { icon: DollarSign, title: "До 10 000 ₽", action: () => handlePriceFilter() },
+    { icon: Music, title: "Группы с живыми инструментами", action: () => handleLiveInstruments() },
   ];
 
   const styles = ["Рок", "Джаз", "Поп", "Каверы", "R&B"];
+
+  const handleStyleClick = (style: string) => {
+    // Фильтруем музыкантов по стилю
+    const styleFilter: FilterData = {
+      date: undefined,
+      priceRange: [0, 100000],
+      selectedTypes: [],
+      searchQuery: style, // Используем поиск по стилю
+      nearby: false,
+    };
+    setFilters(styleFilter);
+    scrollToFilteredSection();
+  };
 
   const handleCategoryClick = (categoryTitle: string) => {
     let selectedTypes: string[] = [];
@@ -374,9 +433,16 @@ const Index = () => {
   const filteredMusicians = allMusicians.filter((musician) => {
     if (!filters) return true;
 
-    // Фильтр по поисковому запросу
-    if (filters.searchQuery && !musician.name.toLowerCase().includes(filters.searchQuery.toLowerCase())) {
-      return false;
+    // Фильтр по поисковому запросу (поиск в имени, стиле и тегах)
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
+      const nameMatch = musician.name.toLowerCase().includes(query);
+      const styleMatch = musician.style.toLowerCase().includes(query);
+      const tagsMatch = musician.tags?.some(tag => tag.toLowerCase().includes(query)) || false;
+      
+      if (!nameMatch && !styleMatch && !tagsMatch) {
+        return false;
+      }
     }
 
     // Фильтр по цене
@@ -519,7 +585,7 @@ const Index = () => {
           <h2 className="mb-4 text-xl font-bold text-foreground">Найти по стилю</h2>
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {styles.map((style) => (
-              <StyleChip key={style} label={style} />
+              <StyleChip key={style} label={style} onClick={() => handleStyleClick(style)} />
             ))}
           </div>
         </section>
@@ -530,7 +596,9 @@ const Index = () => {
           <h2 className="mb-4 text-xl font-bold text-foreground">Последние просмотренные</h2>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {recentlyViewed.map((musician) => (
-                <MusicianCard key={musician.name} name={musician.name} style={musician.style} rating={musician.rating} />
+                <div key={musician.name} onClick={() => handleMusicianClick(musician)}>
+                  <MusicianCard name={musician.name} style={musician.style} rating={musician.rating} image={musician.image} />
+                </div>
             ))}
           </div>
         </section>
@@ -538,14 +606,18 @@ const Index = () => {
 
         {/* Banners */}
         <section className="space-y-3">
-          <PromoBanner
-            variant="yellow"
-            text="Новый: подбор артистов по вашему бюджету"
-          />
-          <PromoBanner
-            variant="purple"
-            text="Музыканты, свободные на этой неделе"
-          />
+          <div onClick={handleBudgetBanner} className="cursor-pointer">
+            <PromoBanner
+              variant="yellow"
+              text="Новый: подбор артистов по вашему бюджету"
+            />
+          </div>
+          <div onClick={handleFreeThisWeek} className="cursor-pointer">
+            <PromoBanner
+              variant="purple"
+              text="Музыканты, свободные на этой неделе"
+            />
+          </div>
         </section>
 
         {/* Categories Grid */}
@@ -746,13 +818,21 @@ const Index = () => {
         <div className="fixed bottom-24 left-0 right-0 z-30 px-4 animate-in slide-in-from-bottom-4 duration-300">
           <div className="mx-auto max-w-md">
             <FilterBottomSheet onApplyFilters={handleApplyFilters} initialFilters={filters || undefined}>
-          <button className="w-full rounded-[20px] bg-primary py-4 text-lg font-bold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 active:scale-[0.98]">
+              <button className="w-full rounded-[20px] bg-primary py-4 text-lg font-bold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 active:scale-[0.98]">
                 Выбрать исполнителя
-          </button>
-        </FilterBottomSheet>
+              </button>
+            </FilterBottomSheet>
           </div>
         </div>
       )}
+
+      {/* Filter Bottom Sheet для быстрой брони и подбора по бюджету */}
+      <FilterBottomSheet 
+        onApplyFilters={handleApplyFilters} 
+        initialFilters={filters || undefined}
+        open={isFilterOpen}
+        onOpenChange={setIsFilterOpen}
+      />
 
       {/* Floating category switcher */}
       {/* Floating category switcher removed per request */}

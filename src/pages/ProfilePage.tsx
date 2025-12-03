@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useState, useEffect } from "react";
-import { getUserProfile, getMusicianName } from "@/lib/firebase-db";
+import { getUserProfile, getMusicianName, createOrUpdateUserProfile } from "@/lib/firebase-db";
 import { musiciansData } from "@/data/musicians";
 import type { Musician } from "@/types/musician";
 
@@ -18,6 +18,7 @@ const ProfilePage = () => {
   const [isMusician, setIsMusician] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [userDisplayName, setUserDisplayName] = useState<string>("");
+  const [userCity, setUserCity] = useState<string>("Москва");
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -31,6 +32,18 @@ const ProfilePage = () => {
           const profile = await getUserProfile(user.uid);
           const userIsMusician = profile?.role === "musician" || !!profile?.musicianName;
           setIsMusician(userIsMusician);
+          
+          // Устанавливаем город из профиля или по умолчанию
+          setUserCity(profile?.city || "Москва");
+          
+          // Если профиля нет, создаем его с городом по умолчанию
+          if (!profile || !profile.city) {
+            await createOrUpdateUserProfile(user.uid, {
+              role: userIsMusician ? "musician" : "customer",
+              city: "Москва",
+            });
+          }
+          
           if (profile?.musicianName) {
             // Находим данные музыканта
             const musician = musiciansData.find((m) => m.name === profile.musicianName);
@@ -54,9 +67,9 @@ const ProfilePage = () => {
   const allMenuItems = [
     { icon: ShoppingBag, label: "Мои заказы", path: "/orders", color: "text-blue-500" },
     { icon: Heart, label: "Избранное", path: "/favorites", color: "text-red-500" },
-    { icon: Bell, label: "Уведомления", path: "#", color: "text-orange-500" },
-    { icon: Settings, label: "Настройки", path: "#", color: "text-gray-500" },
-    { icon: HelpCircle, label: "Помощь и поддержка", path: "#", color: "text-purple-500" },
+    { icon: Bell, label: "Уведомления", path: "/notifications", color: "text-orange-500" },
+    { icon: Settings, label: "Настройки", path: "/settings", color: "text-gray-500" },
+    { icon: HelpCircle, label: "Помощь и поддержка", path: "/help", color: "text-purple-500" },
   ];
 
   // Для музыкантов убираем "Избранное"
@@ -179,7 +192,7 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">Город</p>
-                    <p className="text-sm text-muted-foreground">—</p>
+                    <p className="text-sm text-muted-foreground">{userCity}</p>
                   </div>
                 </div>
               </CardContent>

@@ -30,9 +30,7 @@ const missingVars = Object.entries(requiredEnvVars)
 
 if (missingVars.length > 0 && typeof window !== "undefined") {
   console.error("❌ Отсутствуют переменные окружения Firebase:", missingVars.join(", "));
-  console.error("💡 Добавьте их в Vercel Environment Variables:");
-  console.error("   Vercel Dashboard → Settings → Environment Variables");
-  console.error("   См. файл VERCEL_ENV_SETUP.md для инструкций");
+  console.error("💡 Добавьте их в ваш .env файл или системные переменные окружения.");
 }
 
 const firebaseConfig = {
@@ -50,8 +48,7 @@ try {
 } catch (error) {
   console.error("❌ Ошибка при инициализации Firebase:", error);
   if (typeof window !== "undefined") {
-    console.error("💡 Проверьте переменные окружения в Vercel");
-    console.error("   См. файл VERCEL_ENV_SETUP.md для инструкций");
+    console.error("💡 Проверьте локальные переменные окружения.");
   }
   throw error;
 }

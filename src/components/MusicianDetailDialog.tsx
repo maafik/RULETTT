@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, Music, Clock3, Heart } from "lucide-react";
@@ -25,13 +26,32 @@ interface MusicianDetailDialogProps {
 }
 
 const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onToggleFavorite, onBook }: MusicianDetailDialogProps) => {
+  const scrollPositionRef = useRef<number>(0);
+
+  // Сохраняем позицию скролла при открытии диалога
+  useEffect(() => {
+    if (open) {
+      // Сохраняем текущую позицию скролла
+      scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
+    } else {
+      // Восстанавливаем позицию скролла при закрытии
+      // Используем небольшую задержку, чтобы убедиться, что диалог закрыт
+      setTimeout(() => {
+        window.scrollTo({
+          top: scrollPositionRef.current,
+          behavior: 'auto'
+        });
+      }, 100);
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[24px] border-0 p-0">
+      <DialogContent className="max-w-md rounded-t-[24px] rounded-b-none border-0 p-0 fixed bottom-0 left-[50%] translate-x-[-50%] translate-y-0 top-auto h-[100vh] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom flex flex-col [&_button.absolute]:text-white [&_button.absolute]:hover:text-white [&_button.absolute]:opacity-90 [&_button.absolute:hover]:opacity-100">
         {musician ? (
-          <div className="max-h-[80vh] overflow-y-auto">
+          <div className="flex flex-col h-full overflow-hidden">
             {/* Video */}
-            <div className="aspect-video w-full overflow-hidden rounded-t-[24px] bg-black">
+            <div className="aspect-video w-full flex-shrink-0 overflow-hidden rounded-t-[24px] bg-black">
               {musician.videoUrl ? (
                 <video
                   src={musician.videoUrl}
@@ -44,7 +64,8 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
               )}
             </div>
 
-            <div className="space-y-5 px-5 py-6">
+            <div className="flex-1 overflow-y-auto">
+              <div className="space-y-5 px-5 pt-6 pb-6">
               <DialogHeader className="text-left">
                 <div className="flex items-start justify-between gap-4">
                   <DialogTitle className="text-2xl font-bold text-foreground">{musician.name}</DialogTitle>
@@ -127,17 +148,21 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
                 <p className="mb-2 text-sm font-semibold text-foreground">Описание</p>
                 <p className="text-sm text-muted-foreground">{musician.description}</p>
               </div>
-            </div>
 
-            {/* Actions */}
-            <div className="sticky bottom-0 border-t border-border bg-background px-5 pb-safe pt-4">
-              <Button 
-                className="h-[50px] w-full rounded-[16px] text-base font-semibold"
-                onClick={onBook}
-              >
-                Забронировать выступление
-              </Button>
+              {/* Actions */}
+              <div className="pt-4">
+                <Button 
+                  className="h-[50px] w-full rounded-[16px] text-base font-semibold"
+                  onClick={onBook}
+                >
+                  Забронировать выступление
+                </Button>
+              </div>
+              </div>
             </div>
+            
+            {/* Пустое пространство внизу */}
+            <div className="h-20 flex-shrink-0"></div>
           </div>
         ) : (
           <div className="p-6 text-center text-sm text-muted-foreground">Выберите музыканта</div>

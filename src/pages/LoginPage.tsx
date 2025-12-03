@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Music2 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { createOrUpdateUserProfile } from "@/lib/firebase-db";
 
 interface LoginPageProps {
   onLogin?: () => void;
@@ -34,7 +35,14 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
       if (mode === "login") {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Создаем профиль пользователя с городом по умолчанию
+        if (userCredential.user) {
+          await createOrUpdateUserProfile(userCredential.user.uid, {
+            role: "customer",
+            city: "Москва",
+          });
+        }
       }
       onLogin?.();
       navigate("/");
