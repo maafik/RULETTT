@@ -22,6 +22,9 @@ import ScrollRestoration from "./components/ScrollRestoration";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, initializeNotificationsForUser } from "@/lib/firebase";
 import { initializeCapacitorPushForCurrentUser } from "@/lib/capacitor-push";
+import { handlePaymentReturn } from "@/lib/payment";
+import { updateOrder } from "@/lib/orders";
+import { updateOrderStatus } from "@/lib/firebase-db";
 import { useNavigate } from "react-router-dom";
 import { clearOrdersCache } from "@/lib/orders";
 import { ORDERS_STORAGE_KEY } from "@/constants/storage";
@@ -85,15 +88,40 @@ const AppContent = () => {
     if (!isAuthReady || !isAuthenticated) return;
     if (typeof window === "undefined") return;
 
-    try {
-      const returnOrderId = window.localStorage.getItem("return_to_order_after_payment");
-      if (returnOrderId) {
+    (async () => {
+      try {
+        const returnOrderId = window.localStorage.getItem("return_to_order_after_payment");
+        if (!returnOrderId) return;
+
+        // Сбрасываем флаг, чтобы избежать повторной обработки
         window.localStorage.removeItem("return_to_order_after_payment");
+
+        // Пытаемся получить сохранённый paymentId для этого заказа
+        const paymentKey = `yookassa_payment_${returnOrderId}`;
+        const paymentId = window.localStorage.getItem(paymentKey) || "";
+
+        if (paymentId) {
+          try {
+            const result = await handlePaymentReturn(paymentId, returnOrderId);
+            if (result.success) {
+              try {
+                await updateOrderStatus(returnOrderId, "in-progress");
+              } catch (err) {
+                console.error("Ошибка при обновлении статуса заказа в Firestore после оплаты (App):", err);
+              }
+
+              updateOrder(returnOrderId, { status: "in-progress" as const });
+            }
+          } catch (err) {
+            console.error("Ошибка при проверке статуса платежа после возврата (App):", err);
+          }
+        }
+
         navigate(`/order/${returnOrderId}`, { replace: true });
+      } catch (e) {
+        console.warn("⚠️ Не удалось обработать возврат после оплаты в App:", e);
       }
-    } catch (e) {
-      console.warn("⚠️ Не удалось прочитать return_to_order_after_payment из localStorage:", e);
-    }
+    })();
   }, [isAuthReady, isAuthenticated, navigate]);
 
   // Добавляем текущую страницу в историю при изменении маршрута и скроллим вверх
