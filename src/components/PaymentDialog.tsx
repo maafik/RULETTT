@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { createYooKassaPayment } from "@/lib/payment";
+import { tryPayWithNativeYooKassa } from "@/lib/yookassa-native";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -94,23 +94,16 @@ const PaymentDialog = ({
       }
 
       const description = `Оплата заказа ${orderId}`;
-      const paymentResult = await createYooKassaPayment(amountValue, description, orderId);
+      const usedNative = await tryPayWithNativeYooKassa({
+        orderId,
+        amount: amountValue,
+        description,
+      });
 
-      if (paymentResult.success && paymentResult.confirmationUrl) {
-        // Сохраняем orderId, чтобы после оплаты вернуть пользователя на страницу заказа
-        if (typeof window !== "undefined") {
-          try {
-            window.localStorage.setItem("return_to_order_after_payment", orderId);
-          } catch (e) {
-            console.warn("⚠️ Не удалось сохранить orderId для возврата после оплаты:", e);
-          }
-          // Перенаправляем на страницу оплаты YooKassa в том же WebView/браузере
-          window.location.href = paymentResult.confirmationUrl;
-        }
-      } else {
-        console.error("Ошибка при создании платежа YooKassa:", paymentResult.error);
-        // Не подтверждаем оплату автоматически, оставляем диалог открытым
+      if (usedNative) {
+        return;
       }
+      console.error("Нативная оплата YooKassa недоступна на этой платформе");
     } catch (error) {
       console.error("Ошибка при обработке платежа YooKassa:", error);
       // Не подтверждаем оплату автоматически, оставляем диалог открытым

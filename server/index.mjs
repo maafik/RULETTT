@@ -257,6 +257,96 @@ app.post("/send-push", async (req, res) => {
   }
 });
 
+// Эндпоинт для создания платежа по токену, полученному из мобильного SDK YooKassa
+// Ожидает в теле: { amount, paymentToken, orderId, description? }
+// В отличие от /create-payment, здесь не используется redirect confirmation,
+// а сразу передаётся payment_method_data.payment_token.
+app.post("/create-payment-from-token", async (req, res) => {
+  try {
+    const { amount, paymentToken, orderId, description } = req.body || {};
+
+    if (!amount || !paymentToken || !orderId) {
+      return res.status(400).json({
+        success: false,
+        error: "amount, paymentToken и orderId обязательны",
+      });
+    }
+
+    const amountValue = Number(amount);
+    if (!Number.isFinite(amountValue) || amountValue <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Некорректная сумма платежа",
+      });
+    }
+
+    const formattedAmount = amountValue.toFixed(2);
+
+    const idempotenceKey = `order-${orderId}-token-${Date.now()}`;
+    const authHeader = Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64");
+
+    const payload = {
+      amount: {
+        value: formattedAmount,
+        currency: "RUB",
+      },
+      payment_method_data: {
+        type: "bank_card", // тип зависит от сценария SDK; для токена карты используем bank_card
+        payment_token: paymentToken,
+      },
+      capture: true,
+      description: description || `Оплата заказа ${orderId}`,
+      metadata: {
+        orderId: String(orderId),
+      },
+    };
+
+    console.log("💳 Создание платежа в YooKassa по токену", {
+      amount: formattedAmount,
+      orderId,
+    });
+
+    const response = await fetch("https://api.yookassa.ru/v3/payments", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${authHeader}`,
+        "Idempotence-Key": idempotenceKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("❌ Ошибка ответа YooKassa (token)", response.status, text);
+      return res.status(500).json({
+        success: false,
+        error: "Ошибка при создании платежа YooKassa по токену",
+        providerStatus: response.status,
+        providerResponse: text,
+      });
+    }
+
+    const data = await response.json();
+    console.log("✅ Платеж по токену создан в YooKassa", {
+      id: data.id,
+      status: data.status,
+    });
+
+    return res.json({
+      success: true,
+      paymentId: data.id,
+      status: data.status,
+    });
+  } catch (error) {
+    console.error("❌ Ошибка при создании платежа по токену (server):", error);
+    return res.status(500).json({
+      success: false,
+      error: error && error.message ? error.message : "Внутренняя ошибка сервера",
+    });
+  }
+});
+
 // Эндпоинт для проверки статуса платежа в YooKassa
 app.get("/payment-status/:paymentId", async (req, res) => {
   try {

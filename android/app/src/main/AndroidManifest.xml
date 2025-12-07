@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -24,6 +26,17 @@
             </intent-filter>
 
         </activity>
+
+        <!-- Переопределяем активности SDK YooKassa, чтобы явно указать android:exported -->
+        <activity
+            android:name="ru.yoomoney.sdk.kassa.payments.ui.ConfirmationActivity"
+            android:exported="false"
+            tools:node="merge" />
+
+        <activity
+            android:name="ru.yoomoney.sdk.auth.openSbol.OpenSbolActivity"
+            android:exported="false"
+            tools:node="merge" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
