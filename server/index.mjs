@@ -123,7 +123,14 @@ app.post("/create-payment", async (req, res) => {
 
     const formattedAmount = amountValue.toFixed(2);
 
-    const origin = req.headers.origin || process.env.CLIENT_ORIGIN || "http://localhost:5173";
+    // Базовый origin для ссылки возврата после оплаты:
+    // 1) Если задан CLIENT_ORIGIN в переменных окружения (на Render) — используем его всегда
+    // 2) Иначе пробуем взять Origin из запроса
+    // 3) В крайнем случае падаем обратно на локальный origin для разработки
+    const origin =
+      process.env.CLIENT_ORIGIN ||
+      req.headers.origin ||
+      "http://localhost:5173";
     const returnUrl = `${origin}/payment/return?orderId=${encodeURIComponent(orderId)}`;
 
     const idempotenceKey = `order-${orderId}-${Date.now()}`;
