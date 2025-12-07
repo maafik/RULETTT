@@ -20,7 +20,7 @@ import MusicianProfilePage from "./pages/MusicianProfilePage";
 import LoginPage from "./pages/LoginPage";
 import ScrollRestoration from "./components/ScrollRestoration";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, initializeNotificationsForUser } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { clearOrdersCache } from "@/lib/orders";
 import { ORDERS_STORAGE_KEY } from "@/constants/storage";
@@ -67,6 +67,11 @@ const AppContent = () => {
       previousUid = currentUid;
       setIsAuthenticated(Boolean(user));
       setIsAuthReady(true);
+
+      // Инициализируем push-уведомления для авторизованного пользователя
+      if (user && currentUid) {
+        initializeNotificationsForUser(currentUid);
+      }
     });
 
     return () => unsubscribe();

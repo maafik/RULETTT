@@ -1,7 +1,7 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getMessaging, isSupported } from "firebase/messaging";
+import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { getMessaging, isSupported, getToken } from "firebase/messaging";
 
 // Проверяем наличие всех необходимых переменных окружения
 const requiredEnvVars = {
@@ -162,5 +162,73 @@ export async function getMessagingInstance(): Promise<ReturnType<typeof getMessa
   return await initializeMessaging();
 }
 
-export { app, messaging };
+// Сохранение FCM токена пользователя в userFCMTokens/{uid}
+async function saveUserFCMToken(userUid: string, token: string): Promise<void> {
+  if (!db) {
+    console.warn("⚠️ Firestore не инициализирован, FCM токен не будет сохранен");
+    return;
+  }
 
+  try {
+    const ref = doc(db, "userFCMTokens", userUid);
+    await setDoc(
+      ref,
+      {
+        token,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    console.log("✅ FCM токен сохранен в userFCMTokens/" + userUid);
+  } catch (error) {
+    console.error("❌ Ошибка при сохранении FCM токена:", error);
+  }
+}
+
+// Инициализация push-уведомлений для текущего пользователя
+export async function initializeNotificationsForUser(userUid: string): Promise<void> {
+  try {
+    if (!userUid) return;
+
+    const vapidKey = (import.meta as any).env.VITE_FCM_VAPID_KEY as string | undefined;
+    if (!vapidKey) {
+      console.warn("⚠️ VITE_FCM_VAPID_KEY не задан, push-уведомления для Web не будут работать");
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+
+    // Проверяем/запрашиваем разрешение на уведомления
+    if (Notification.permission === "denied") {
+      console.warn("⚠️ Пользователь запретил уведомления в браузере");
+      return;
+    }
+
+    if (Notification.permission === "default") {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        console.warn("⚠️ Пользователь не дал разрешение на уведомления");
+        return;
+      }
+    }
+
+    const messagingInstance = await getMessagingInstance();
+    if (!messagingInstance) {
+      console.warn("⚠️ Firebase Messaging недоступен, токен не будет получен");
+      return;
+    }
+
+    const token = await getToken(messagingInstance, { vapidKey });
+    if (!token) {
+      console.warn("⚠️ Не удалось получить FCM токен");
+      return;
+    }
+
+    console.log("✅ Получен FCM токен для пользователя", userUid, token);
+    await saveUserFCMToken(userUid, token);
+  } catch (error) {
+    console.error("❌ Ошибка при инициализации уведомлений для пользователя:", error);
+  }
+}
+
+export { app, messaging };
