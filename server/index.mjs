@@ -100,6 +100,54 @@ app.post("/create-payment", async (req, res) => {
   }
 });
 
+// Эндпоинт для проверки статуса платежа в YooKassa
+app.get("/payment-status/:paymentId", async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    if (!paymentId) {
+      return res.status(400).json({ success: false, error: "paymentId обязателен" });
+    }
+
+    const authHeader = Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64");
+
+    console.log("🔍 Проверка статуса платежа в YooKassa", { paymentId });
+
+    const response = await fetch(`https://api.yookassa.ru/v3/payments/${paymentId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${authHeader}`,
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("❌ Ошибка ответа YooKassa при проверке статуса:", response.status, text);
+      return res.status(500).json({
+        success: false,
+        error: "Ошибка при проверке статуса платежа YooKassa",
+        providerStatus: response.status,
+        providerResponse: text,
+      });
+    }
+
+    const data = await response.json();
+    console.log("✅ Статус платежа получен", { id: data.id, status: data.status });
+
+    return res.json({
+      success: true,
+      status: data.status,
+      paymentId: data.id,
+    });
+  } catch (error) {
+    console.error("❌ Ошибка при проверке статуса платежа YooKassa (server):", error);
+    return res.status(500).json({
+      success: false,
+      error: error && error.message ? error.message : "Внутренняя ошибка сервера",
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Payment server listening on http://localhost:${PORT}`);
 });

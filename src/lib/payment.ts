@@ -82,6 +82,16 @@ export const createYooKassaPayment = async (
       };
     }
 
+    // Сохраняем идентификатор платежа локально, чтобы использовать его при возврате
+    if (typeof window !== "undefined" && result.paymentId) {
+      try {
+        const key = `yookassa_payment_${orderId}`;
+        window.localStorage.setItem(key, result.paymentId);
+      } catch (e) {
+        console.warn("⚠️ Не удалось сохранить paymentId в localStorage", e);
+      }
+    }
+
     return {
       success: true,
       paymentId: result.paymentId,
@@ -137,23 +147,70 @@ export const handlePaymentReturn = async (
 ): Promise<PaymentResult> => {
   try {
     console.log("🔄 Обработка возврата после оплаты:", { paymentId, orderId });
+    if (!paymentId) {
+      console.warn("⚠️ paymentId отсутствует при возврате оплаты", { orderId });
+      return {
+        success: false,
+        error: "Не удалось определить платеж. Попробуйте ещё раз или свяжитесь с поддержкой.",
+      };
+    }
 
-    // TODO: Проверить статус платежа через ваш бэкенд
-    /*
-    const response = await fetch(`/api/payments/${paymentId}/status`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${YOOKASSA_TEST_KEY}`,
-      },
+    // Проверяем статус платежа через backend payment-сервера
+    const baseUrl = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:4000";
+    const url = `${baseUrl.replace(/\/$/, "")}/payment-status/${encodeURIComponent(paymentId)}`;
+
+    const response = await fetch(url, {
+      method: "GET",
     });
 
-    const status = await response.json();
-    */
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("❌ Ошибка ответа backend при проверке статуса платежа:", response.status, text);
+      return {
+        success: false,
+        error: "Не удалось проверить статус оплаты. Попробуйте позже.",
+      };
+    }
 
-    // Временная заглушка
+    const result = await response.json();
+
+    if (!result.success) {
+      console.error("❌ Backend вернул ошибку при проверке статуса платежа:", result);
+      return {
+        success: false,
+        error: result.error || "Не удалось подтвердить оплату.",
+      };
+    }
+
+    const status = result.status as string | undefined;
+
+    if (status === "succeeded") {
+      console.log("✅ Платеж успешно подтверждён YooKassa", { paymentId, orderId, status });
+
+      // Очищаем сохраненный paymentId для этого заказа
+      if (typeof window !== "undefined") {
+        try {
+          const key = `yookassa_payment_${orderId}`;
+          window.localStorage.removeItem(key);
+        } catch (e) {
+          console.warn("⚠️ Не удалось удалить сохраненный paymentId из localStorage", e);
+        }
+      }
+
+      return {
+        success: true,
+        paymentId,
+      };
+    }
+
+    console.warn("ℹ️ Платёж не в статусе succeeded", { paymentId, orderId, status });
     return {
-      success: true,
+      success: false,
       paymentId,
+      error:
+        status === "canceled"
+          ? "Оплата была отменена. Если это ошибка, попробуйте оплатить ещё раз."
+          : "Оплата ещё не завершена. Попробуйте обновить страницу или подождать немного.",
     };
   } catch (error) {
     console.error("❌ Ошибка при обработке возврата:", error);

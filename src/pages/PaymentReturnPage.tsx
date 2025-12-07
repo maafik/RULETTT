@@ -17,7 +17,14 @@ const PaymentReturnPage = () => {
 
   useEffect(() => {
     const orderId = query.get("orderId") || "";
-    const paymentId = query.get("paymentId") || "";
+
+    // Пытаемся получить paymentId из query или из localStorage
+    let paymentId =
+      query.get("paymentId") ||
+      query.get("payment_id") ||
+      (typeof window !== "undefined"
+        ? window.localStorage.getItem(`yookassa_payment_${orderId}`) || ""
+        : "");
 
     if (!orderId) {
       toast({
@@ -32,7 +39,7 @@ const PaymentReturnPage = () => {
 
     (async () => {
       try {
-        const result = await handlePaymentReturn(paymentId || "test", orderId);
+        const result = await handlePaymentReturn(paymentId || "", orderId);
 
         if (result.success) {
           // Обновляем статус заказа на "in-progress" в Firestore и локальном кэше
