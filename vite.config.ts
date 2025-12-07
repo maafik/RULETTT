@@ -18,5 +18,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    // Увеличиваем размер предупреждений для больших бандлов
+    chunkSizeWarningLimit: 1000,
   },
 }));

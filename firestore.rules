@@ -1,6 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    /// Вспомогательная функция: проверка, что пользователь — админ (конкретный UID)
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == "DypkhitMEzLyPzSBTLoPMGYQxHM2";
+    }
+
     // Профили пользователей
     match /userProfiles/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
@@ -38,20 +44,25 @@ service cloud.firestore {
       allow write: if false; // Только через Admin SDK
     }
     
-    // Заказы - все авторизованные могут создавать и читать
+    // Заказы - все авторизованные могут создавать;
+    // читать/обновлять могут:
+    // 1. Администратор (UID DypkhitMEzLyPzSBTLoPMGYQxHM2) — видит все заказы
+    // 2. Заказчик (создатель заказа)
+    // 3. Музыкант-исполнитель заказа
     match /orders/{orderId} {
       // Любой авторизованный пользователь может создавать заказы
       allow create: if request.auth != null;
-      
-      // Читать могут:
-      // 1. Заказчик (создатель заказа)
-      // 2. Музыкант (исполнитель заказа)
+
+      // Администратор: полный доступ ко всем заказам (нужно для выборки всех заказов)
+      allow read, update: if isAdmin();
+
+      // Обычные пользователи:
+      // - читать и обновлять могут только свои заказы (как заказчик или как исполнитель)
       allow read: if request.auth != null && (
         resource.data.customerUid == request.auth.uid ||
         resource.data.artistName == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.musicianName
       );
       
-      // Обновлять могут заказчик или музыкант
       allow update: if request.auth != null && (
         resource.data.customerUid == request.auth.uid ||
         resource.data.artistName == get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.musicianName
@@ -62,6 +73,9 @@ service cloud.firestore {
       
       // ⭐ НОВОЕ: Правила для сообщений в чате заказа
       match /messages/{messageId} {
+        // Администратор: полный доступ ко всем сообщениям
+        allow read, create: if isAdmin();
+        
         // Читать сообщения могут заказчик или музыкант этого заказа
         allow read: if request.auth != null && (
           get(/databases/$(database)/documents/orders/$(orderId)).data.customerUid == request.auth.uid ||

@@ -2,15 +2,16 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import BottomNav from "@/components/BottomNav";
 import OrderStatusChip from "@/components/OrderStatusChip";
-import { getOrdersWithDefaults } from "@/lib/orders";
+import { getOrders } from "@/lib/orders";
 import type { Order } from "@/data/orders";
 import { auth } from "@/lib/firebase";
-import { getUserProfile, getOrdersForMusician, getOrdersForCustomer, subscribeToMusicianOrders } from "@/lib/firebase-db";
+import { getUserProfile, getOrdersForMusician, getOrdersForCustomer, subscribeToMusicianOrders, isAdminProfile, getAllOrders, subscribeToAllOrders } from "@/lib/firebase-db";
 
 const OrdersListPage = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isMusician, setIsMusician] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRoleChecked, setIsRoleChecked] = useState(false);
 
@@ -25,18 +26,24 @@ const OrdersListPage = () => {
     try {
       // Проверяем, является ли пользователь музыкантом
       const profile = await getUserProfile(user.uid);
-      const userIsMusician = profile?.role === "musician" || !!profile?.musicianName;
+      const userIsAdmin = isAdminProfile(user.uid, profile);
+      const userIsMusician = userIsAdmin || profile?.role === "musician" || !!profile?.musicianName;
+      setIsAdmin(userIsAdmin);
       setIsMusician(userIsMusician);
 
-      if (userIsMusician) {
+      if (userIsAdmin) {
+        // Админ (Анна Смирнова) видит все заказы
+        const allOrders = await getAllOrders();
+        setOrders(allOrders as Order[]);
+      } else if (userIsMusician) {
         // Если пользователь - музыкант, загружаем заказы, где он исполнитель
         const musicianOrders = await getOrdersForMusician(user.uid);
         setOrders(musicianOrders as Order[]);
       } else {
-        // Если пользователь - клиент, загружаем заказы, которые он создал
+        // Если пользователь - клиент, загружаем только заказы, которые он создал
         const customerOrders = await getOrdersForCustomer(user.uid);
-        // Также получаем локальные заказы
-        const localOrders = getOrdersWithDefaults();
+        // Получаем локальные заказы только для текущего пользователя
+        const localOrders = getOrders().filter((order) => order.customerUid === user.uid);
         // Объединяем и убираем дубликаты
         const allOrders = [...customerOrders];
         localOrders.forEach((localOrder) => {
@@ -48,9 +55,14 @@ const OrdersListPage = () => {
       }
     } catch (error) {
       console.error("Ошибка при загрузке заказов:", error);
-      // В случае ошибки используем локальные заказы
-      const localOrders = getOrdersWithDefaults();
-      setOrders(localOrders);
+      // В случае ошибки используем только локальные заказы текущего пользователя
+      const user = auth.currentUser;
+      if (user) {
+        const localOrders = getOrders().filter((order) => order.customerUid === user.uid);
+        setOrders(localOrders);
+      } else {
+        setOrders([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -66,13 +78,22 @@ const OrdersListPage = () => {
     let unsubscribe: (() => void) | null = null;
     let interval: NodeJS.Timeout | null = null;
 
-    // Для музыкантов используем подписку в реальном времени
+    // Для музыкантов и админа используем подписку в реальном времени
     getUserProfile(user.uid).then((profile) => {
-      const userIsMusician = profile?.role === "musician" || !!profile?.musicianName;
+      const userIsAdmin = isAdminProfile(user.uid, profile);
+      const userIsMusician = userIsAdmin || profile?.role === "musician" || !!profile?.musicianName;
+      setIsAdmin(userIsAdmin);
       setIsMusician(userIsMusician);
       setIsRoleChecked(true); // Роль определена, можно показывать заголовок
 
-      if (userIsMusician) {
+      if (userIsAdmin) {
+        console.log("🛠 Пользователь является администратором, загружаем все заказы");
+        unsubscribe = subscribeToAllOrders((newOrders) => {
+          console.log("Получены все заказы для админа:", newOrders);
+          setOrders(newOrders as Order[]);
+          setIsLoading(false);
+        });
+      } else if (userIsMusician) {
         console.log("🎵 Пользователь является музыкантом, загружаем заказы на выступления");
         // Подписываемся на изменения заказов в реальном времени
         unsubscribe = subscribeToMusicianOrders(user.uid, (newOrders) => {
@@ -104,7 +125,7 @@ const OrdersListPage = () => {
 
   // Периодически обновляем заказы, если есть заказы со статусом "created"
   useEffect(() => {
-    if (isMusician) return; // Для музыкантов используем подписку в реальном времени
+    if (isMusician || isAdmin) return; // Для музыкантов и админа используем подписку в реальном времени
 
     const hasCreatedOrders = orders.some((order) => order.status === "created" && order.createdAt);
     if (!hasCreatedOrders) return;
@@ -128,16 +149,21 @@ const OrdersListPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-4 backdrop-blur-sm">
+      <header 
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 px-4 py-4 backdrop-blur-sm"
+        style={{ 
+          paddingTop: `calc(1rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         <div className="mx-auto flex max-w-md items-center justify-between">
           <div>
             {isRoleChecked ? (
               <>
                 <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground">
-                  {isMusician ? "ВХОДЯЩИЕ ЗАКАЗЫ" : "ВАШИ ЗАКАЗЫ"}
+                  {isAdmin ? "ВСЕ ЗАКАЗЫ" : isMusician ? "ВХОДЯЩИЕ ЗАКАЗЫ" : "ВАШИ ЗАКАЗЫ"}
                 </p>
                 <h1 className="text-2xl font-bold text-foreground">
-                  {isMusician ? "Заказы на выступления" : "Бронирования"}
+                  {isAdmin ? "Админ: все заказы" : isMusician ? "Заказы на выступления" : "Бронирования"}
                 </h1>
               </>
             ) : (
@@ -155,7 +181,12 @@ const OrdersListPage = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-4 py-6 space-y-4">
+      <main 
+        className="mx-auto max-w-md px-4 py-4 space-y-3"
+        style={{ 
+          paddingTop: `calc(5.4rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         {isLoading ? (
           <div className="rounded-[20px] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             Загрузка заказов...
@@ -182,7 +213,7 @@ const OrdersListPage = () => {
                       {order.date} · {order.time}
                     </p>
                   </div>
-                  <OrderStatusChip status={order.status} />
+                  <OrderStatusChip status={order.status} short={true} />
                 </div>
 
                 <div className="mt-4 flex items-center justify-between gap-3">

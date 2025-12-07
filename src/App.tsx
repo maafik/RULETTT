@@ -13,6 +13,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import HelpPage from "./pages/HelpPage";
 import SupportPage from "./pages/SupportPage";
+import PaymentReturnPage from "./pages/PaymentReturnPage";
 import NotFound from "./pages/NotFound";
 import ChatPage from "./pages/ChatPage";
 import MusicianProfilePage from "./pages/MusicianProfilePage";
@@ -21,6 +22,8 @@ import ScrollRestoration from "./components/ScrollRestoration";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
+import { clearOrdersCache } from "@/lib/orders";
+import { ORDERS_STORAGE_KEY } from "@/constants/storage";
 
 const queryClient = new QueryClient();
 
@@ -31,24 +34,62 @@ const AppContent = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
+    let previousUid: string | null = null;
+    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const currentUid = user?.uid || null;
+      
+      // Если пользователь изменился, очищаем заказы из localStorage
+      if (previousUid !== null && previousUid !== currentUid) {
+        console.log("🔄 Пользователь изменился, очищаем локальные заказы");
+        // Очищаем только заказы, которые не принадлежат новому пользователю
+        if (typeof window !== "undefined") {
+          try {
+            const stored = localStorage.getItem(ORDERS_STORAGE_KEY);
+            if (stored) {
+              const orders = JSON.parse(stored);
+              // Оставляем только заказы текущего пользователя
+              const userOrders = orders.filter((order: any) => order.customerUid === currentUid);
+              if (userOrders.length === 0) {
+                localStorage.removeItem(ORDERS_STORAGE_KEY);
+              } else {
+                localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(userOrders));
+              }
+            }
+          } catch (error) {
+            console.error("Ошибка при очистке заказов:", error);
+            // В случае ошибки просто очищаем все
+            clearOrdersCache();
+          }
+        }
+      }
+      
+      previousUid = currentUid;
       setIsAuthenticated(Boolean(user));
       setIsAuthReady(true);
-      
     });
 
     return () => unsubscribe();
   }, [navigate]);
 
-  // Добавляем текущую страницу в историю при изменении маршрута
+  // Добавляем текущую страницу в историю при изменении маршрута и скроллим вверх
   useEffect(() => {
     if (typeof window === "undefined") return;
     
+    // Не скроллим вверх для страницы чата - там свой скролл
+    if (!location.pathname.startsWith('/chat/')) {
+      // Всегда скроллим в самый верх при переходе между страницами
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+    
     const currentUrl = window.location.href;
-    // Используем replaceState, чтобы не создавать лишние записи в истории
-    window.history.replaceState({ preventBack: true }, "", currentUrl);
-    // Добавляем новую запись для предотвращения перехода назад
-    window.history.pushState({ preventBack: true }, "", currentUrl);
+    // Не блокируем кнопку "назад" для чата
+    if (!location.pathname.startsWith('/chat/')) {
+      // Используем replaceState, чтобы не создавать лишние записи в истории
+      window.history.replaceState({ preventBack: true }, "", currentUrl);
+      // Добавляем новую запись для предотвращения перехода назад
+      window.history.pushState({ preventBack: true }, "", currentUrl);
+    }
   }, [location.pathname]);
 
   // Обработка кнопки "назад": закрываем диалоги или предотвращаем переход
@@ -62,6 +103,11 @@ const AppContent = () => {
     };
 
     const handlePopState = (event: PopStateEvent) => {
+      // Разрешаем кнопку "назад" для страницы чата
+      if (location.pathname.startsWith('/chat/')) {
+        return; // Разрешаем навигацию назад для чата
+      }
+      
       // Проверяем, есть ли открытые диалоги через Radix UI атрибуты
       const openDialogs = document.querySelectorAll('[data-state="open"][role="dialog"]');
       
@@ -151,6 +197,10 @@ const AppContent = () => {
           element={isAuthenticated ? <SupportPage /> : <Navigate to="/login" replace />}
         />
         <Route
+          path="/payment/return"
+          element={isAuthenticated ? <PaymentReturnPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
           path="/order/:id/profile"
           element={isAuthenticated ? <MusicianProfilePage /> : <Navigate to="/login" replace />}
         />
@@ -176,6 +226,7 @@ const App = () => {
             v7_relativeSplatPath: true,
             v7_startTransition: true 
           }}
+          basename="/"
         >
           <AppContent />
         </BrowserRouter>

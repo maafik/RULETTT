@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { createYooKassaPayment } from "@/lib/payment";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -21,6 +22,8 @@ interface PaymentDialogProps {
   time?: string;
   location?: string;
   format?: string;
+  prepayment?: string;
+  orderId?: string;
 }
 
 const PaymentDialog = ({
@@ -32,9 +35,27 @@ const PaymentDialog = ({
   time,
   location,
   format,
+  prepayment,
+  orderId,
 }: PaymentDialogProps) => {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const commentTextareaRef = useState<HTMLTextAreaElement | null>(null);
+
+  // Предотвращаем автоматический фокус на textarea при открытии
+  useEffect(() => {
+    if (open) {
+      // Небольшая задержка для предотвращения автоматического фокуса
+      const timer = setTimeout(() => {
+        const textarea = document.getElementById("comment") as HTMLTextAreaElement;
+        if (textarea) {
+          textarea.blur();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -46,6 +67,47 @@ const PaymentDialog = ({
       console.error("Ошибка при оплате:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleYooKassaPayment = async () => {
+    if (!orderId) {
+      console.error("Order ID не указан");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      // Извлекаем сумму из строки (например, "15 000 ₽" или "15 000 ₽" -> 15000)
+      // Удаляем все пробельные символы (включая неразрывные), знаки валюты и текст,
+      // оставляя только цифры, точку и запятую
+      const normalizedAmount = amount
+        .replace(/\u00A0/g, " ") // неразрывные пробелы -> обычные
+        .replace(/[^0-9.,]/g, "") // удаляем всё, кроме цифр, точки и запятой
+        .replace(",", ".");
+
+      const amountValue = parseFloat(normalizedAmount);
+
+      if (isNaN(amountValue)) {
+        console.error("❌ Неверный формат суммы для YooKassa:", amount, normalizedAmount);
+        throw new Error("Неверный формат суммы");
+      }
+
+      const description = `Оплата заказа ${orderId}`;
+      const paymentResult = await createYooKassaPayment(amountValue, description, orderId);
+
+      if (paymentResult.success && paymentResult.confirmationUrl) {
+        // Перенаправляем на страницу оплаты YooKassa
+        window.location.href = paymentResult.confirmationUrl;
+      } else {
+        console.error("Ошибка при создании платежа YooKassa:", paymentResult.error);
+        // Не подтверждаем оплату автоматически, оставляем диалог открытым
+      }
+    } catch (error) {
+      console.error("Ошибка при обработке платежа YooKassa:", error);
+      // Не подтверждаем оплату автоматически, оставляем диалог открытым
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -61,9 +123,17 @@ const PaymentDialog = ({
         <div className="space-y-4 py-4">
           <Card className="rounded-[16px] border-2 border-primary/20 bg-primary/5">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Сумма к оплате</span>
-                <span className="text-2xl font-bold text-primary">{amount}</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Сумма к оплате</span>
+                  <span className="text-2xl font-bold text-primary">{amount}</span>
+                </div>
+                {prepayment && (
+                  <div className="flex items-center justify-between pt-2 border-t border-primary/10">
+                    <span className="text-sm font-medium text-muted-foreground">Предоплата</span>
+                    <span className="text-lg font-semibold text-primary">{prepayment} ₽</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -103,6 +173,10 @@ const PaymentDialog = ({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className="rounded-[12px] min-h-[80px]"
+              onFocus={(e) => {
+                // Разрешаем фокус только при явном клике пользователя
+                // Не блокируем, но предотвращаем автоматический фокус при открытии
+              }}
             />
           </div>
         </div>
@@ -115,11 +189,11 @@ const PaymentDialog = ({
             Отмена
           </Button>
           <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="rounded-[12px] bg-primary"
+            onClick={handleYooKassaPayment}
+            disabled={isSubmitting || isProcessingPayment}
+            className="rounded-[12px] bg-primary w-full"
           >
-            {isSubmitting ? "Оплачиваю..." : "Оплатить"}
+            {isProcessingPayment ? "Подключение к YooKassa..." : isSubmitting ? "Оплачиваю..." : "Оплатить через YooKassa"}
           </Button>
         </DialogFooter>
       </DialogContent>

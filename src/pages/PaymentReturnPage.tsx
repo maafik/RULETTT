@@ -1,0 +1,82 @@
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { handlePaymentReturn } from "@/lib/payment";
+import { useToast } from "@/hooks/use-toast";
+import { updateOrder } from "@/lib/orders";
+import { updateOrderStatus } from "@/lib/firebase-db";
+
+function useQuery() {
+  return new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+}
+
+const PaymentReturnPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const query = useQuery();
+
+  useEffect(() => {
+    const orderId = query.get("orderId") || "";
+    const paymentId = query.get("paymentId") || "";
+
+    if (!orderId) {
+      toast({
+        title: "Не удалось определить заказ",
+        description: "Параметр orderId отсутствует в ссылке возврата.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      navigate("/orders", { replace: true });
+      return;
+    }
+
+    (async () => {
+      try {
+        const result = await handlePaymentReturn(paymentId || "test", orderId);
+
+        if (result.success) {
+          // Обновляем статус заказа на "in-progress" в Firestore и локальном кэше
+          try {
+            await updateOrderStatus(orderId, "in-progress");
+          } catch (err) {
+            console.error("Ошибка при обновлении статуса заказа в Firestore после оплаты:", err);
+          }
+
+          updateOrder(orderId, { status: "in-progress" as const });
+
+          toast({
+            title: "Оплата обработана",
+            description: `Оплата для заказа №${orderId} подтверждена. Статус: выступление в процессе.`,
+            duration: 3000,
+          });
+          navigate(`/order/${orderId}`, { replace: true });
+        } else {
+          toast({
+            title: "Ошибка оплаты",
+            description: result.error || "Не удалось подтвердить оплату.",
+            variant: "destructive",
+            duration: 3000,
+          });
+          navigate(`/order/${orderId}`, { replace: true });
+        }
+      } catch (error) {
+        console.error("Ошибка при обработке возврата оплаты:", error);
+        toast({
+          title: "Ошибка",
+          description: "Произошла ошибка при обработке оплаты.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        navigate(`/order/${orderId}`, { replace: true });
+      }
+    })();
+  }, [location.search]);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
+      Обработка результата оплаты...
+    </div>
+  );
+};
+
+export default PaymentReturnPage;

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Цвета для системных панелей -->
+    <color name="colorPrimary">#6200EE</color>
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorAccent">#03DAC5</color>
+    
+    <!-- Прозрачные цвета для edge-to-edge режима -->
+    <color name="statusBarColor">@android:color/transparent</color>
+    <color name="navigationBarColor">@android:color/transparent</color>
+</resources>
+
+

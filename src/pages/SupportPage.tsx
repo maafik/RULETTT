@@ -11,6 +11,7 @@ const SupportPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [phone, setPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -19,9 +20,10 @@ const SupportPage = () => {
     
     const trimmedEmail = email.trim();
     const trimmedMessage = message.trim();
+    const trimmedPhone = phone.trim();
 
     if (!trimmedEmail || !trimmedMessage) {
-      alert("Пожалуйста, заполните все поля");
+      alert("Пожалуйста, заполните обязательные поля");
       return;
     }
 
@@ -35,12 +37,13 @@ const SupportPage = () => {
     setIsSubmitting(true);
 
     try {
-      const result = await sendSupportMessage(trimmedEmail, trimmedMessage);
+      const result = await sendSupportMessage(trimmedEmail, trimmedMessage, trimmedPhone || undefined);
       
       if (result.sent || result.attempted) {
         setIsSuccess(true);
         setEmail("");
         setMessage("");
+        setPhone("");
       } else {
         alert("Не удалось отправить сообщение. Попробуйте позже.");
       }
@@ -58,7 +61,12 @@ const SupportPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
+      <header 
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm"
+        style={{ 
+          paddingTop: `calc(1rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-4">
           <button
             onClick={handleBack}
@@ -72,7 +80,12 @@ const SupportPage = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-4 py-6">
+      <main 
+        className="mx-auto max-w-md px-4 py-6"
+        style={{ 
+          paddingTop: `calc(5.5rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         {isSuccess ? (
           <div className="flex flex-col items-center justify-center rounded-[20px] border border-border bg-card p-8 text-center">
             <CheckCircle2 size={48} className="mb-4 text-green-500" />
@@ -102,6 +115,21 @@ const SupportPage = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
+                disabled={isSubmitting}
+                className="rounded-[16px]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="phone" className="text-sm font-medium text-foreground">
+                Телефон (необязательно)
+              </label>
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+7 999 123-45-67"
                 disabled={isSubmitting}
                 className="rounded-[16px]"
               />

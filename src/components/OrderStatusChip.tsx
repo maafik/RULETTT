@@ -1,35 +1,36 @@
 interface OrderStatusChipProps {
   status: "created" | "pending" | "payment-pending" | "confirmed" | "in-progress" | "completed" | "cancelled";
+  short?: boolean;
 }
 
-const OrderStatusChip = ({ status }: OrderStatusChipProps) => {
+const OrderStatusChip = ({ status, short = false }: OrderStatusChipProps) => {
   const statusConfig = {
     created: {
-      label: "Заказ создан",
+      label: short ? "Создан" : "Заказ создан",
       className: "bg-muted text-muted-foreground border border-border",
     },
     pending: {
-      label: "Ожидает подтверждения",
+      label: short ? "Ожидает" : "Ожидает подтверждения",
       className: "bg-primary text-primary-foreground",
     },
     "payment-pending": {
-      label: "Оплата подтверждена",
+      label: short ? "Оплата" : "Оплата подтверждена",
       className: "bg-blue-500 text-white",
     },
     confirmed: {
-      label: "Подтверждён",
+      label: short ? "Подтверждён" : "Подтверждён",
       className: "bg-secondary text-secondary-foreground",
     },
     "in-progress": {
-      label: "В процессе",
+      label: short ? "В процессе" : "В процессе",
       className: "bg-accent text-accent-foreground border border-border",
     },
     completed: {
-      label: "Выполнен",
+      label: short ? "Выполнен" : "Выполнен",
       className: "bg-success text-success-foreground",
     },
     cancelled: {
-      label: "Отменён",
+      label: short ? "Отменён" : "Отменён",
       className: "bg-destructive text-destructive-foreground",
     },
   };

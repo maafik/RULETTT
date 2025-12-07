@@ -28,12 +28,11 @@ interface FilterBottomSheetProps {
 
 const musicianTypes = [
   "DJ",
-  "Вокалист",
+  "Ведущий",
   "Группа",
   "Инструменталист",
   "Дуэт",
   "Cover band",
-  "Ведущий",
 ];
 
 const FilterBottomSheet = ({ children, onApplyFilters, initialFilters, open: controlledOpen, onOpenChange }: FilterBottomSheetProps) => {
@@ -177,7 +176,13 @@ const FilterBottomSheet = ({ children, onApplyFilters, initialFilters, open: con
         </div>
 
         {/* Fixed Button at Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-border bg-background p-4">
+        <div 
+          className="absolute left-0 right-0 border-t border-border bg-background p-4"
+          style={{ 
+            bottom: `env(safe-area-inset-bottom, 0px)`,
+            paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px))`
+          }}
+        >
           <SheetClose asChild>
             <Button
               onClick={handleApplyFilters}

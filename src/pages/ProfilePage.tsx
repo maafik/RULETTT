@@ -80,14 +80,24 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
+      <header 
+        className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border"
+        style={{ 
+          paddingTop: `calc(1rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         <div className="mx-auto max-w-md px-4 py-4">
           <h1 className="text-2xl font-bold text-foreground">Профиль</h1>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-md px-4 py-4 space-y-6">
+      <main 
+        className="mx-auto max-w-md px-4 py-3 space-y-5"
+        style={{ 
+          paddingTop: `calc(4.9rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         {/* Profile Card */}
         {isLoading ? (
           <Card className="rounded-[20px] border-0 shadow-sm">

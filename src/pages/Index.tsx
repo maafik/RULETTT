@@ -37,6 +37,7 @@ const Index = () => {
   const [isCategorySwitcherOpen, setIsCategorySwitcherOpen] = useState(false);
   const [favoriteMusicians, setFavoriteMusicians] = useState<FavoriteMusician[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   const allMusicians = useMemo<Musician[]>(() => musiciansData, []);
@@ -197,8 +198,8 @@ const Index = () => {
       case "DJ":
         selectedTypes = ["DJ"];
         break;
-      case "Вокалисты":
-        selectedTypes = ["Вокалист"];
+      case "Ведущие":
+        selectedTypes = ["Ведущий"];
         break;
       case "Cover band":
         selectedTypes = ["Cover band"];
@@ -236,7 +237,7 @@ const Index = () => {
 
   const gridCategories = [
     { icon: Disc3, title: "DJ", onClick: () => handleCategoryClick("DJ") },
-    { icon: Mic, title: "Вокалисты", onClick: () => handleCategoryClick("Вокалисты") },
+    { icon: Mic, title: "Ведущие", onClick: () => handleCategoryClick("Ведущие") },
     { icon: Users, title: "Cover band", onClick: () => handleCategoryClick("Cover band") },
     { icon: Guitar, title: "Инструменталисты", onClick: () => handleCategoryClick("Инструменталисты") },
     { icon: Music2, title: "Дуэты", onClick: () => handleCategoryClick("Дуэты") },
@@ -280,6 +281,32 @@ const Index = () => {
   const handleApplyFilters = (newFilters: FilterData) => {
     setFilters(newFilters);
     scrollToFilteredSection();
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    // Применяем поиск как фильтр
+    if (value.trim()) {
+      const searchFilter: FilterData = {
+        date: filters?.date,
+        priceRange: filters?.priceRange || [0, 100000],
+        selectedTypes: filters?.selectedTypes || [],
+        searchQuery: value.trim(),
+        nearby: filters?.nearby || false,
+      };
+      setFilters(searchFilter);
+      scrollToFilteredSection();
+    } else if (!filters?.date && !filters?.priceRange && filters?.selectedTypes?.length === 0 && !filters?.nearby) {
+      // Если поиск пустой и нет других фильтров, сбрасываем фильтры
+      setFilters(null);
+    } else if (filters) {
+      // Если есть другие фильтры, просто убираем поисковый запрос
+      const updatedFilters: FilterData = {
+        ...filters,
+        searchQuery: "",
+      };
+      setFilters(updatedFilters);
+    }
   };
 
   const handleMusicianClick = (musician: Musician) => {
@@ -339,7 +366,7 @@ const Index = () => {
     const customerUid = user?.uid;
     const customerEmail = user?.email || undefined;
     const customerName = user?.displayName || undefined;
-    const customerPhone = user?.phoneNumber || undefined;
+    const customerPhone = user?.phoneNumber || undefined; // Основной идентификатор при телефонной аутентификации
 
     const order = createOrder(
       {
@@ -355,7 +382,14 @@ const Index = () => {
         experience: selectedMusician.experience,
         tags: selectedMusician.tags,
       },
-      bookingData,
+      {
+        date: bookingData.date,
+        eventType: bookingData.eventType,
+        time: bookingData.time,
+        endTime: bookingData.endTime,
+        location: bookingData.location,
+        comment: bookingData.comment,
+      },
       customerUid,
       customerEmail,
       customerName,
@@ -383,7 +417,9 @@ const Index = () => {
                 musicianUid,
                 firebaseOrderId,
                 customerName || customerEmail || "Клиент",
-                selectedMusician.name
+                selectedMusician.name,
+                customerPhone || null,
+                customerEmail || null
               );
             }
           } catch (notifError) {
@@ -561,16 +597,26 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-40">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 pt-4 pb-3">
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header - Fixed */}
+      <header 
+        className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm px-4 pt-4 pb-3"
+        style={{ 
+          paddingTop: `calc(1rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         <div className="mx-auto max-w-md">
-          <SearchBar />
+          <SearchBar value={searchQuery} onChange={handleSearchChange} />
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-md px-4 space-y-6 mt-4 pb-4">
+      <main 
+        className="mx-auto max-w-md px-4 space-y-6 mt-2 pb-4"
+        style={{ 
+          paddingTop: `calc(4.4rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         {/* Categories */}
         <section className="grid grid-cols-2 gap-3">
           {categories.map((category, index) => (
@@ -723,14 +769,6 @@ const Index = () => {
         <section ref={musiciansRef}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-foreground">Музыканты</h2>
-            {filters && (
-              <button
-                onClick={() => setFilters(null)}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Сбросить фильтры
-              </button>
-            )}
           </div>
           {musiciansToShow.length > 0 ? (
           <div className="space-y-3">
@@ -815,7 +853,12 @@ const Index = () => {
 
       {/* Fixed Bottom Button - появляется только в зоне музыканты */}
       {isMusiciansSectionVisible && (
-        <div className="fixed bottom-24 left-0 right-0 z-30 px-4 animate-in slide-in-from-bottom-4 duration-300">
+        <div 
+          className="fixed left-0 right-0 z-40 px-4 animate-in slide-in-from-bottom-4 duration-300"
+          style={{ 
+            bottom: `calc(7rem + env(safe-area-inset-bottom, 0px))`
+          }}
+        >
           <div className="mx-auto max-w-md">
             <FilterBottomSheet onApplyFilters={handleApplyFilters} initialFilters={filters || undefined}>
               <button className="w-full rounded-[20px] bg-primary py-4 text-lg font-bold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 active:scale-[0.98]">

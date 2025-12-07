@@ -16,7 +16,8 @@ import { db } from "./firebase";
 
 // Проверка инициализации Firestore
 if (!db) {
-  console.error("⚠️ Firestore не инициализирован! Проверьте конфигурацию Firebase.");
+  console.warn("⚠️ Firestore не инициализирован! Проверьте конфигурацию Firebase.");
+  console.warn("⚠️ Функции работы с базой данных будут недоступны.");
 }
 
 // Типы для Firebase данных
@@ -25,6 +26,8 @@ export interface UserProfile {
   role: "musician" | "customer";
   linkedAt?: number;
   city?: string;
+  phone?: string;
+  allowWhatsAppTelegramNotifications?: boolean;
 }
 
 export interface MusicianProfile {
@@ -36,6 +39,14 @@ export interface MusicianProfile {
  * Получить профиль пользователя по UID
  */
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  if (!db) {
+    console.warn("⚠️ Firestore недоступен, возвращаем профиль по умолчанию");
+    return {
+      role: "customer",
+      city: "Москва",
+    } as UserProfile;
+  }
+  
   try {
     const profileRef = doc(db, "userProfiles", uid);
     const snapshot = await getDoc(profileRef);
@@ -47,6 +58,8 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         role: data.role || "customer",
         linkedAt: data.linkedAt?.toMillis?.() || data.linkedAt,
         city: data.city || "Москва",
+        phone: data.phone || null,
+        allowWhatsAppTelegramNotifications: data.allowWhatsAppTelegramNotifications || false,
       } as UserProfile;
       
       if (profile.role === "musician" || profile.musicianName) {
@@ -68,7 +81,22 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       role: "customer",
       city: "Москва",
     } as UserProfile;
-  } catch (error) {
+  } catch (error: any) {
+    // Обработка ошибок подключения
+    if (error.code === "unavailable" || error.message?.includes("offline") || error.message?.includes("network")) {
+      console.warn("⚠️ Firestore недоступен (офлайн режим). Используем профиль по умолчанию.");
+      console.warn("💡 Проверьте:");
+      console.warn("   1. Интернет-соединение");
+      console.warn("   2. Переменные окружения Firebase (.env файл)");
+      console.warn("   3. Настройки Firebase для localhost");
+      
+      // Возвращаем профиль по умолчанию вместо null
+      return {
+        role: "customer",
+        city: "Москва",
+      } as UserProfile;
+    }
+    
     console.error("❌ Ошибка при получении профиля пользователя:", error);
     return null;
   }
@@ -98,6 +126,20 @@ export async function createOrUpdateUserProfile(uid: string, data: Partial<UserP
   } catch (error) {
     console.error("❌ Ошибка при создании/обновлении профиля пользователя:", error);
   }
+}
+
+/**
+ * Проверка, является ли пользователь администратором (Анна Смирнова)
+ */
+export function isAdminProfile(uid: string, profile: UserProfile | null): boolean {
+  // Жёстко привязываем админские права к конкретному UID аккаунта
+  if (uid === "DypkhitMEzLyPzSBTLoPMGYQxHM2") {
+    return true;
+  }
+
+  // На всякий случай оставляем старую проверку по имени (fallback)
+  const name = profile?.musicianName?.trim().toLowerCase();
+  return !!name && name === "анна смирнова";
 }
 
 /**
@@ -389,6 +431,59 @@ export async function getOrdersForCustomer(customerUid: string): Promise<any[]> 
 }
 
 /**
+ * Получить все заказы (для админа)
+ */
+export async function getAllOrders(): Promise<any[]> {
+  try {
+    const ordersRef = collection(db, "orders");
+
+    let q = query(ordersRef, orderBy("createdAt", "desc"));
+
+    try {
+      const snapshot = await getDocs(q);
+      const orders: any[] = [];
+
+      console.log(`✅ Найдено ${snapshot.size} заказов (все заказы)`);
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        orders.push({
+          ...data,
+          id: docSnap.id || data.id,
+          createdAt: data.createdAt?.toMillis?.() || data.createdAt || Date.now(),
+        });
+      });
+
+      return orders;
+    } catch (error: any) {
+      if (error.code === "failed-precondition") {
+        console.warn("⚠️ Индекс не найден для всех заказов, используем запрос без сортировки");
+
+        q = query(ordersRef);
+        const snapshot = await getDocs(q);
+        const orders: any[] = [];
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          orders.push({
+            ...data,
+            id: docSnap.id || data.id,
+            createdAt: data.createdAt?.toMillis?.() || data.createdAt || Date.now(),
+          });
+        });
+
+        orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        return orders;
+      }
+      throw error;
+    }
+  } catch (error: any) {
+    console.error("❌ Ошибка при получении всех заказов (админ):", error);
+    return [];
+  }
+}
+
+/**
  * Подписаться на изменения заказов для музыканта
  */
 export function subscribeToMusicianOrders(
@@ -526,6 +621,93 @@ export function subscribeToMusicianOrders(
 }
 
 /**
+ * Подписаться на все заказы (для администратора)
+ */
+export function subscribeToAllOrders(
+  callback: (orders: any[]) => void
+): () => void {
+  if (!db) {
+    console.error("❌ Firestore не инициализирован");
+    callback([]);
+    return () => {};
+  }
+
+  const ordersRef = collection(db, "orders");
+
+  let unsubscribe: (() => void) | null = null;
+
+  const qWithOrderBy = query(
+    ordersRef,
+    orderBy("createdAt", "desc")
+  );
+
+  unsubscribe = onSnapshot(
+    qWithOrderBy,
+    (snapshot) => {
+      const orders: any[] = [];
+      console.log(`✅ Получено ${snapshot.size} заказов (админ просмотр всех заказов)`);
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        orders.push({
+          ...data,
+          id: docSnap.id || data.id,
+          createdAt: data.createdAt?.toMillis?.() || data.createdAt || Date.now(),
+        });
+      });
+
+      orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      callback(orders);
+    },
+    (error) => {
+      console.error("❌ Ошибка при подписке на все заказы:", error);
+
+      if (error.code === "failed-precondition") {
+        console.warn("⚠️ Индекс не найден для всех заказов, используем запрос без сортировки");
+
+        const qWithoutOrderBy = query(ordersRef);
+
+        if (unsubscribe) {
+          unsubscribe();
+        }
+
+        unsubscribe = onSnapshot(
+          qWithoutOrderBy,
+          (snapshot) => {
+            const orders: any[] = [];
+            console.log(`✅ Получено ${snapshot.size} заказов (без сортировки, админ)`);
+
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              orders.push({
+                ...data,
+                id: docSnap.id || data.id,
+                createdAt: data.createdAt?.toMillis?.() || data.createdAt || Date.now(),
+              });
+            });
+
+            orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            callback(orders);
+          },
+          (fallbackError) => {
+            console.error("❌ Ошибка при подписке (fallback) на все заказы:", fallbackError);
+            callback([]);
+          }
+        );
+      } else {
+        callback([]);
+      }
+    }
+  );
+
+  return () => {
+    if (unsubscribe) {
+      unsubscribe();
+    }
+  };
+}
+
+/**
  * Получить заказ по ID из Firestore
  */
 export async function getOrderById(orderId: string): Promise<any | null> {
@@ -634,6 +816,8 @@ async function sendStatusChangeNotification(
     const customerUid = orderData.customerUid;
     const artistName = orderData.artistName;
     const customerName = orderData.customerName || "Клиент";
+    const customerPhone: string | null = orderData.customerPhone || null;
+    const customerEmail: string | null = orderData.customerEmail || null;
 
     // Получаем UID музыканта по имени
     const musicianUid = await getMusicianUidByName(artistName);
@@ -649,7 +833,7 @@ async function sendStatusChangeNotification(
       case "in-progress":
         // Клиент оплатил -> уведомление музыканту
         if (musicianUid) {
-          await notifyOrderPaid(musicianUid, orderId, customerName, artistName);
+          await notifyOrderPaid(musicianUid, orderId, customerName, artistName, customerPhone, customerEmail);
         }
         break;
 
@@ -801,10 +985,42 @@ async function sendChatMessageNotification(
     const orderData = orderDoc.data();
     const customerUid = orderData.customerUid;
     const artistName = orderData.artistName;
+    let customerPhone: string | null = orderData.customerPhone || null;
+    const customerEmail: string | null = orderData.customerEmail || null;
     
     if (!customerUid || !artistName) {
       console.warn("⚠️ Недостаточно данных заказа для отправки уведомления:", { customerUid, artistName });
       return;
+    }
+    
+    // Получаем профиль клиента для получения номера телефона и настройки уведомлений
+    let customerProfile = null;
+    let allowWhatsAppTelegramNotifications = false;
+    
+    if (message.sender === "client") {
+      try {
+        customerProfile = await getUserProfile(customerUid);
+        if (customerProfile) {
+          allowWhatsAppTelegramNotifications = customerProfile.allowWhatsAppTelegramNotifications || false;
+          
+          // Если номера телефона нет в заказе, пытаемся получить из профиля пользователя или Firebase Auth
+          if (!customerPhone) {
+            if (customerProfile.phone) {
+              customerPhone = customerProfile.phone;
+              console.log("📞 Номер телефона получен из профиля пользователя:", customerPhone);
+            } else {
+              // Если нет в профиле, пробуем получить из Firebase Auth текущего пользователя
+              const { auth } = await import("./firebase");
+              if (auth && auth.currentUser?.uid === customerUid && auth.currentUser.phoneNumber) {
+                customerPhone = auth.currentUser.phoneNumber;
+                console.log("📞 Номер телефона получен из Firebase Auth:", customerPhone);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("⚠️ Не удалось получить профиль клиента:", error);
+      }
     }
     
     // Определяем получателя уведомления
@@ -823,46 +1039,64 @@ async function sendChatMessageNotification(
       senderName = artistName;
     }
     
-    if (!targetUserUid) {
-      console.warn("⚠️ Не удалось определить получателя уведомления");
-      return;
-    }
-    
-    // Не отправляем уведомление самому себе
-    if (targetUserUid === message.senderUid) {
-      console.log("ℹ️ Пропускаем уведомление - отправитель и получатель совпадают");
-      return;
-    }
-    
     // Импортируем функцию уведомлений
-    const { notifyChatMessage } = await import("./notifications");
+    const { notifyChatMessage, maybeSendTelegramAlert } = await import("./notifications");
     const direction: "client-to-musician" | "musician-to-client" =
       message.sender === "client" ? "client-to-musician" : "musician-to-client";
     
-    // Отправляем уведомление
-    const notificationResult = await notifyChatMessage(
-      targetUserUid,
-      orderId,
-      senderName,
-      message.text,
-      { direction, musicianName: artistName }
-    );
-    
-    if (notificationResult.savedToHistory) {
-      console.log(`✅ Запись уведомления сохранена для пользователя ${targetUserUid}`);
-    } else {
-      console.warn("⚠️ Не удалось сохранить запись уведомления в Firestore");
-    }
-
-    if (notificationResult.telegram.attempted) {
-      if (notificationResult.telegram.sent) {
-        console.log("✅ Telegram уведомление доставлено музыканту");
-      } else {
-        console.warn(
-          "⚠️ Telegram уведомление не отправлено:",
-          notificationResult.telegram.error || notificationResult.telegram.skippedReason
-        );
+    // Для сообщений от клиентов всегда отправляем в Telegram, даже если targetUserUid не найден
+    if (message.sender === "client") {
+      console.log("💬 Отправка сообщения от клиента в Telegram");
+      console.log("   Номер телефона клиента:", customerPhone || "не указан");
+      console.log("   Email клиента:", customerEmail || "не указан");
+      const telegramResult = await maybeSendTelegramAlert({
+        orderId,
+        senderName,
+        messageText: message.text,
+        musicianName: artistName,
+        customerPhone,
+        customerEmail,
+        direction,
+        allowWhatsAppTelegramNotifications,
+      });
+      
+      if (telegramResult.attempted) {
+        if (telegramResult.sent) {
+          console.log("✅ Telegram уведомление доставлено");
+        } else {
+          console.warn(
+            "⚠️ Telegram уведомление не отправлено:",
+            telegramResult.error || telegramResult.skippedReason
+          );
+        }
       }
+    }
+    
+    // Сохраняем уведомление в Firestore только если targetUserUid найден
+    if (targetUserUid) {
+      // Не отправляем уведомление самому себе
+      if (targetUserUid === message.senderUid) {
+        console.log("ℹ️ Пропускаем сохранение уведомления - отправитель и получатель совпадают");
+        return;
+      }
+      
+      // Отправляем уведомление для сохранения в истории
+      // Пропускаем отправку в Telegram, так как уже отправили выше
+      const notificationResult = await notifyChatMessage(
+        targetUserUid,
+        orderId,
+        senderName,
+        message.text,
+        { direction, musicianName: artistName, customerPhone, customerEmail, skipTelegram: message.sender === "client" }
+      );
+      
+      if (notificationResult.savedToHistory) {
+        console.log(`✅ Запись уведомления сохранена для пользователя ${targetUserUid}`);
+      } else {
+        console.warn("⚠️ Не удалось сохранить запись уведомления в Firestore");
+      }
+    } else {
+      console.warn("⚠️ Не удалось определить получателя уведомления для сохранения в Firestore");
     }
   } catch (error) {
     console.error("❌ Ошибка при отправке уведомления о сообщении:", error);

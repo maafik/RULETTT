@@ -3,13 +3,14 @@ import { db } from "./firebase";
 
 const DEFAULT_TELEGRAM_BOT_TOKEN = "8314217513:AAHhxLHdM7biYi0FEG6hzvSPivYP6CnPkQE";
 const DEFAULT_TELEGRAM_CHAT_ID = "7702221669";
-const TARGET_MUSICIAN_NAME = "анна смирнова";
-
 type ChatDirection = "client-to-musician" | "musician-to-client";
 
 type ChatNotificationOptions = {
   direction?: ChatDirection;
   musicianName?: string | null;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  skipTelegram?: boolean; // Пропустить отправку в Telegram (если уже отправлено)
 };
 
 type OrderAlertType = "order-created" | "order-paid";
@@ -85,7 +86,9 @@ export async function notifyOrderCreated(
   musicianUid: string,
   orderId: string,
   customerName: string,
-  artistName: string
+  artistName: string,
+  customerPhone?: string | null,
+  customerEmail?: string | null
 ): Promise<boolean> {
   const saved = await sendOrderNotification(
     musicianUid,
@@ -98,6 +101,8 @@ export async function notifyOrderCreated(
     type: "order-created",
     orderId,
     customerName,
+    customerPhone: customerPhone ?? null,
+    customerEmail: customerEmail ?? null,
     musicianName: artistName,
   });
   logOrderTelegramResult("создании заказа", telegram);
@@ -128,7 +133,9 @@ export async function notifyOrderPaid(
   musicianUid: string,
   orderId: string,
   customerName: string,
-  artistName: string
+  artistName: string,
+  customerPhone?: string | null,
+  customerEmail?: string | null
 ): Promise<boolean> {
   const saved = await sendOrderNotification(
     musicianUid,
@@ -141,6 +148,8 @@ export async function notifyOrderPaid(
     type: "order-paid",
     orderId,
     customerName,
+    customerPhone: customerPhone ?? null,
+    customerEmail: customerEmail ?? null,
     musicianName: artistName,
   });
   logOrderTelegramResult("оплате заказа", telegram);
@@ -198,13 +207,21 @@ export async function notifyChatMessage(
     "chat-message"
   );
 
-  const telegramResult = await maybeSendTelegramAlert({
-    orderId,
-    senderName,
-    messageText,
-    musicianName: options?.musicianName,
-    direction: options?.direction,
-  });
+  const telegramResult = options?.skipTelegram
+    ? {
+        attempted: false,
+        sent: false,
+        skippedReason: "already-sent",
+      }
+    : await maybeSendTelegramAlert({
+        orderId,
+        senderName,
+        messageText,
+        musicianName: options?.musicianName,
+        customerPhone: options?.customerPhone ?? null,
+        customerEmail: options?.customerEmail ?? null,
+        direction: options?.direction,
+      });
 
   return {
     savedToHistory,
@@ -212,30 +229,21 @@ export async function notifyChatMessage(
   };
 }
 
-/**
- * Телеграм-алерт только для сообщений клиента Анне Смирновой.
- */
-async function maybeSendTelegramAlert(params: {
+export async function maybeSendTelegramAlert(params: {
   orderId: string;
   senderName: string;
   messageText: string;
   musicianName?: string | null;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
   direction?: ChatDirection;
+  allowWhatsAppTelegramNotifications?: boolean;
 }): Promise<TelegramNotificationResult> {
   if (params.direction !== "client-to-musician") {
     return {
       attempted: false,
       sent: false,
       skippedReason: "direction-not-supported",
-    };
-  }
-
-  const normalizedMusicianName = normalizeName(params.musicianName);
-  if (normalizedMusicianName !== TARGET_MUSICIAN_NAME) {
-    return {
-      attempted: false,
-      sent: false,
-      skippedReason: "musician-not-target",
     };
   }
 
@@ -248,19 +256,26 @@ async function maybeSendTelegramAlert(params: {
     };
   }
 
+  console.log("📱 Параметры для Telegram сообщения:", {
+    orderId: params.orderId,
+    senderName: params.senderName,
+    musicianName: params.musicianName,
+    customerPhone: params.customerPhone,
+    customerEmail: params.customerEmail,
+    messageText: params.messageText.substring(0, 50) + "...",
+  });
+
   const message = buildTelegramMessage({
     orderId: params.orderId,
     senderName: params.senderName,
     musicianName: params.musicianName ?? "Музыкант",
+    customerPhone: params.customerPhone ?? null,
+    customerEmail: params.customerEmail ?? null,
     text: params.messageText,
+    allowWhatsAppTelegramNotifications: params.allowWhatsAppTelegramNotifications ?? false,
   });
 
   return await sendTelegramMessage(message, credentials);
-}
-
-function normalizeName(value?: string | null): string | null {
-  if (!value) return null;
-  return value.trim().toLowerCase();
 }
 
 function getTelegramCredentials():
@@ -282,38 +297,61 @@ function buildTelegramMessage(params: {
   orderId: string;
   senderName: string;
   musicianName: string;
+  customerPhone: string | null;
+  customerEmail: string | null;
   text: string;
+  allowWhatsAppTelegramNotifications: boolean;
 }): string {
   const escapedText = escapeHtml(params.text);
   const escapedSender = escapeHtml(params.senderName || "Клиент");
   const escapedMusician = escapeHtml(params.musicianName);
+  const escapedPhone = params.customerPhone ? escapeHtml(params.customerPhone) : null;
+  const escapedEmail = params.customerEmail ? escapeHtml(params.customerEmail) : null;
 
-  return [
+  console.log("📱 Формирование Telegram сообщения:");
+  console.log("   Номер телефона:", params.customerPhone || "не указан");
+  console.log("   Email:", params.customerEmail || "не указан");
+
+  const lines: string[] = [
     "🎵 <b>Новое сообщение для музыканта</b>",
     "",
     `<b>Музыкант:</b> ${escapedMusician}`,
     `<b>Клиент:</b> ${escapedSender}`,
+  ];
+
+  if (escapedEmail) {
+    lines.push(`<b>Email:</b> ${escapedEmail}`);
+  }
+
+  // Всегда показываем номер телефона, если он есть
+  const phoneToShow = escapedPhone || (params.customerPhone ? escapeHtml(params.customerPhone) : null);
+  if (phoneToShow) {
+    lines.push(`<b>Телефон:</b> ${phoneToShow}`);
+  } else {
+    console.warn("⚠️ Номер телефона не найден для отображения в Telegram сообщении");
+  }
+
+  // Показываем информацию о согласии на уведомления
+  const notificationsStatus = params.allowWhatsAppTelegramNotifications ? "Да" : "Нет";
+  lines.push(`<b>Уведомления WhatsApp/Telegram:</b> ${notificationsStatus}`);
+
+  lines.push(
     `<b>Заказ:</b> ${escapeHtml(params.orderId)}`,
     "",
-    escapedText,
-  ].join("\n");
+    escapedText
+  );
+
+  return lines.join("\n");
 }
 
 async function maybeSendOrderTelegramAlert(params: {
   type: OrderAlertType;
   orderId: string;
   customerName?: string | null;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
   musicianName?: string | null;
 }): Promise<TelegramNotificationResult> {
-  const normalizedMusician = normalizeName(params.musicianName);
-  if (normalizedMusician !== TARGET_MUSICIAN_NAME) {
-    return {
-      attempted: false,
-      sent: false,
-      skippedReason: "musician-not-target",
-    };
-  }
-
   const credentials = getTelegramCredentials();
   if (!credentials) {
     return {
@@ -327,6 +365,8 @@ async function maybeSendOrderTelegramAlert(params: {
     type: params.type,
     orderId: params.orderId,
     customerName: params.customerName ?? "Клиент",
+    customerPhone: params.customerPhone ?? null,
+    customerEmail: params.customerEmail ?? null,
     musicianName: params.musicianName ?? "Музыкант",
   });
 
@@ -337,6 +377,8 @@ function buildOrderTelegramMessage(params: {
   type: OrderAlertType;
   orderId: string;
   customerName: string;
+  customerPhone: string | null;
+  customerEmail: string | null;
   musicianName: string;
 }): string {
   const header =
@@ -344,39 +386,126 @@ function buildOrderTelegramMessage(params: {
       ? "🆕 <b>Новый заказ</b>"
       : "💰 <b>Заказ оплачен</b>";
 
-  return [
+  const lines: string[] = [
     header,
     "",
     `<b>Музыкант:</b> ${escapeHtml(params.musicianName)}`,
     `<b>Клиент:</b> ${escapeHtml(params.customerName)}`,
-    `<b>Заказ:</b> ${escapeHtml(params.orderId)}`,
-  ].join("\n");
+  ];
+
+  if (params.customerEmail) {
+    lines.push(`<b>Email клиента:</b> ${escapeHtml(params.customerEmail)}`);
+  }
+
+  if (params.customerPhone) {
+    lines.push(`<b>Телефон клиента:</b> ${escapeHtml(params.customerPhone)}`);
+  }
+
+  lines.push(`<b>Заказ:</b> ${escapeHtml(params.orderId)}`);
+
+  return lines.join("\n");
 }
 
 async function sendTelegramMessage(
   message: string,
   credentials: { token: string; chatId: string }
 ): Promise<TelegramNotificationResult> {
+  // Валидация credentials
+  if (!credentials.token || !credentials.chatId) {
+    console.warn("⚠️ Telegram credentials отсутствуют");
+    return {
+      attempted: false,
+      sent: false,
+      error: "missing-credentials",
+    };
+  }
+
+  // Проверка формата токена (должен начинаться с цифр и содержать двоеточие)
+  if (!/^\d+:[A-Za-z0-9_-]+$/.test(credentials.token)) {
+    console.warn("⚠️ Неверный формат Telegram bot token");
+    return {
+      attempted: false,
+      sent: false,
+      error: "invalid-token-format",
+    };
+  }
+
+  // Ограничение длины сообщения (Telegram лимит 4096 символов)
+  const maxLength = 4096;
+  const truncatedMessage = message.length > maxLength 
+    ? message.substring(0, maxLength - 3) + "..." 
+    : message;
+
   const url = new URL(`https://api.telegram.org/bot${credentials.token}/sendMessage`);
   url.search = new URLSearchParams({
     chat_id: credentials.chatId,
-    text: message,
+    text: truncatedMessage,
     parse_mode: "HTML",
     disable_web_page_preview: "true",
   }).toString();
 
   try {
-    await fetch(url.toString(), {
+    const response = await fetch(url.toString(), {
       method: "GET",
-      mode: "no-cors",
+      // Убираем no-cors чтобы видеть реальные ошибки
+      // Если возникнут CORS проблемы, можно использовать прокси или серверную функцию
     });
 
-    console.log("✅ Telegram уведомление отправлено (режим no-cors)");
-    return {
-      attempted: true,
-      sent: true,
-    };
+    // Проверяем статус ответа
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("❌ Telegram API вернул ошибку:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+      });
+      
+      return {
+        attempted: true,
+        sent: false,
+        error: `telegram-api-error-${response.status}: ${errorData.description || response.statusText}`,
+      };
+    }
+
+    const data = await response.json();
+    if (data.ok) {
+      console.log("✅ Telegram уведомление отправлено");
+      return {
+        attempted: true,
+        sent: true,
+      };
+    } else {
+      console.error("❌ Telegram API вернул ошибку:", data);
+      return {
+        attempted: true,
+        sent: false,
+        error: data.description || "unknown-telegram-error",
+      };
+    }
   } catch (error: any) {
+    // Обработка сетевых ошибок и CORS
+    if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
+      console.error("❌ Ошибка сети или CORS при отправке в Telegram:", error.message);
+      // Если CORS блокирует, можно попробовать no-cors как fallback
+      try {
+        await fetch(url.toString(), {
+          method: "GET",
+          mode: "no-cors",
+        });
+        console.log("⚠️ Telegram запрос отправлен в no-cors режиме (ответ недоступен)");
+        return {
+          attempted: true,
+          sent: true, // Предполагаем успех, т.к. не можем проверить
+        };
+      } catch (noCorsError) {
+        return {
+          attempted: true,
+          sent: false,
+          error: "network-or-cors-error",
+        };
+      }
+    }
+    
     console.error("❌ Ошибка при отправке сообщения в Telegram:", error);
     return {
       attempted: true,
@@ -422,7 +551,8 @@ function escapeHtml(value: string): string {
  */
 export async function sendSupportMessage(
   email: string,
-  message: string
+  message: string,
+  phone?: string
 ): Promise<TelegramNotificationResult> {
   const credentials = getTelegramCredentials();
   if (!credentials) {
@@ -433,22 +563,65 @@ export async function sendSupportMessage(
     };
   }
 
-  const supportMessage = buildSupportMessage(email, message);
+  const supportMessage = buildSupportMessage(email, message, phone);
   return await sendTelegramMessage(supportMessage, credentials);
 }
 
-function buildSupportMessage(email: string, message: string): string {
+function buildSupportMessage(email: string, message: string, phone?: string): string {
   const escapedEmail = escapeHtml(email);
   const escapedMessage = escapeHtml(message);
+  const escapedPhone = phone ? escapeHtml(phone) : null;
 
-  return [
+  const lines: string[] = [
     "💬 <b>Новое сообщение в поддержку</b>",
     "",
     `<b>Email:</b> ${escapedEmail}`,
+  ];
+
+  if (escapedPhone) {
+    lines.push(`<b>Телефон:</b> ${escapedPhone}`);
+  }
+
+  lines.push(
     "",
     `<b>Сообщение:</b>`,
     escapedMessage,
-  ].join("\n");
+  );
+
+  return lines.join("\n");
+}
+
+/**
+ * Телеграм-уведомление о новой регистрации пользователя
+ */
+export async function sendRegistrationAlert(
+  email: string,
+  phone?: string | null
+): Promise<TelegramNotificationResult> {
+  const credentials = getTelegramCredentials();
+  if (!credentials) {
+    return {
+      attempted: false,
+      sent: false,
+      skippedReason: "telegram-disabled",
+    };
+  }
+
+  const escapedEmail = escapeHtml(email);
+  const escapedPhone = phone ? escapeHtml(phone) : null;
+
+  const lines: string[] = [
+    "🆕 <b>Новая регистрация</b>",
+    "",
+    `<b>Email:</b> ${escapedEmail}`,
+  ];
+
+  if (escapedPhone) {
+    lines.push(`<b>Телефон:</b> ${escapedPhone}`);
+  }
+
+  const message = lines.join("\n");
+  return await sendTelegramMessage(message, credentials);
 }
 
 /**

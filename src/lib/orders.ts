@@ -20,7 +20,7 @@ type CreateOrderMusician = {
 
 export const createOrder = (
   musician: CreateOrderMusician,
-  bookingData: { date: Date; eventType: string; time: string; location: string; comment: string },
+  bookingData: { date: Date; eventType: string; time: string; endTime: string; location: string; comment: string },
   customerUid?: string,
   customerEmail?: string,
   customerName?: string,
@@ -30,11 +30,9 @@ export const createOrder = (
   const orderId = Date.now().toString();
   const formattedDate = format(bookingData.date, "d MMMM yyyy", { locale: ru });
   
-  // Форматируем время (например, "19:00" -> "19:00–21:00")
-  const [hours, minutes] = bookingData.time.split(":");
-  const startTime = `${hours}:${minutes}`;
-  const endHours = (parseInt(hours) + 2).toString().padStart(2, "0");
-  const endTime = `${endHours}:${minutes}`;
+  // Форматируем время (например, "19:00" и "21:00" -> "19:00–21:00")
+  const startTime = bookingData.time;
+  const endTime = bookingData.endTime;
   const timeRange = `${startTime}–${endTime}`;
 
   return {

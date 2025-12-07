@@ -103,7 +103,12 @@ const MusicianProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
+      <header 
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm"
+        style={{ 
+          paddingTop: `calc(1rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-4">
           <button
             onClick={handleBack}
@@ -131,7 +136,12 @@ const MusicianProfilePage = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-4 py-4 space-y-5">
+      <main 
+        className="mx-auto max-w-md px-4 py-4 space-y-5"
+        style={{ 
+          paddingTop: `calc(5.5rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         {isLoading ? (
           <div className="rounded-[20px] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             Загрузка профиля...

@@ -24,6 +24,7 @@ export interface Order {
   customerEmail?: string; // Email заказчика
   customerName?: string; // Имя заказчика
   customerPhone?: string; // Телефон заказчика
+  prepayment?: string; // Предоплата
 }
 
 export const orders: Order[] = [

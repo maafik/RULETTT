@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
-import { format, parse } from "date-fns";
+import { format, parse, startOfToday } from "date-fns";
 import { ru } from "date-fns/locale/ru";
 import { cn } from "@/lib/utils";
 import ImageWithFallback from "./ImageWithFallback";
+import { LAST_BOOKING_DATA_KEY } from "@/constants/storage";
 
 interface BookingDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export interface BookingData {
   date: Date;
   eventType: string;
   time: string;
+  endTime: string;
   location: string;
   comment: string;
 }
@@ -56,6 +58,7 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [eventType, setEventType] = useState("");
   const [time, setTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
   const [comment, setComment] = useState("");
   const scrollPositionRef = useRef<number>(0);
@@ -76,9 +79,10 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
     }
   }, [open]);
 
-  // Заполняем форму при редактировании
+  // Заполняем форму при редактировании или загружаем сохраненные данные
   useEffect(() => {
     if (open && initialData) {
+      // Редактирование существующего заказа
       if (initialData.date) {
         // Парсим дату из формата "d MMMM yyyy" (например, "28 мая 2025")
         try {
@@ -106,27 +110,67 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
         }
       }
       setEventType(initialData.eventType || "");
-      // Парсим время из формата "19:00–21:00" -> "19:00"
+      // Парсим время из формата "19:00–21:00" -> "19:00" и "21:00"
       if (initialData.time) {
-        const timeMatch = initialData.time.match(/^(\d{2}:\d{2})/);
+        const timeMatch = initialData.time.match(/^(\d{2}:\d{2})–(\d{2}:\d{2})/);
         if (timeMatch) {
           setTime(timeMatch[1]);
+          setEndTime(timeMatch[2]);
+        } else {
+          // Если формат не содержит дефис, пробуем только начало
+          const startMatch = initialData.time.match(/^(\d{2}:\d{2})/);
+          if (startMatch) {
+            setTime(startMatch[1]);
+          }
         }
       }
       setLocation(initialData.location || "");
       setComment(initialData.comment || "");
     } else if (open && !initialData) {
-      // Сброс формы при открытии для нового заказа
-      setDate(undefined);
-      setEventType("");
-      setTime("");
-      setLocation("");
-      setComment("");
+      // Новый заказ - загружаем сохраненные данные
+      try {
+        const savedData = localStorage.getItem(LAST_BOOKING_DATA_KEY);
+        if (savedData) {
+          const parsed = JSON.parse(savedData);
+          if (parsed.date) {
+            const savedDate = new Date(parsed.date);
+            if (!isNaN(savedDate.getTime())) {
+              setDate(savedDate);
+            }
+          }
+          if (parsed.eventType) {
+            setEventType(parsed.eventType);
+          }
+          if (parsed.location) {
+            setLocation(parsed.location);
+          }
+          // Время и комментарий не сохраняем - они могут отличаться
+          setTime("");
+          setEndTime("");
+          setComment("");
+        } else {
+          // Если нет сохраненных данных, сбрасываем форму
+          setDate(undefined);
+          setEventType("");
+          setTime("");
+          setEndTime("");
+          setLocation("");
+          setComment("");
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке сохраненных данных бронирования:", error);
+        // В случае ошибки сбрасываем форму
+        setDate(undefined);
+        setEventType("");
+        setTime("");
+        setLocation("");
+        setComment("");
+      }
     }
   }, [open, initialData]);
 
   const handleSubmit = () => {
-    if (!date || !eventType || !time || !location) {
+    if (!date || !eventType || !time || !endTime || !location) {
       return;
     }
 
@@ -134,27 +178,53 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
       date,
       eventType,
       time,
+      endTime,
       location,
       comment,
     };
 
+    // Сохраняем данные бронирования в localStorage (только для новых заказов, не при редактировании)
+    if (!isEdit) {
+      try {
+        const dataToSave = {
+          date: date.toISOString(), // Сохраняем как ISO строку для удобства парсинга
+          eventType,
+          location,
+          // Не сохраняем time и comment - они могут отличаться для разных заказов
+        };
+        localStorage.setItem(LAST_BOOKING_DATA_KEY, JSON.stringify(dataToSave));
+        console.log("✅ Данные бронирования сохранены:", dataToSave);
+      } catch (error) {
+        console.error("Ошибка при сохранении данных бронирования:", error);
+      }
+    }
+
     onConfirm(bookingData);
     
-    // Сброс формы
-    setDate(undefined);
-    setEventType("");
-    setTime("");
-    setLocation("");
-    setComment("");
+    // Сброс формы только если это не редактирование
+    if (!isEdit) {
+      // Не сбрасываем форму полностью - оставляем сохраненные данные для следующего заказа
+      setTime("");
+      setEndTime("");
+      setComment("");
+    } else {
+      // При редактировании сбрасываем все
+      setDate(undefined);
+      setEventType("");
+      setTime("");
+      setEndTime("");
+      setLocation("");
+      setComment("");
+    }
     onOpenChange(false);
   };
 
-  const isValid = date && eventType && time && location;
+  const isValid = date && eventType && time && endTime && location;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[24px] border-0 p-0 max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+      <DialogContent className="!max-w-full !w-screen !h-screen !max-h-screen !rounded-none !border-0 !p-0 !m-0 !translate-x-0 !translate-y-0 !left-0 !top-0 !right-0 !bottom-0 overflow-y-auto [&>button]:hidden" style={{ maxWidth: '100vw', width: '100vw', height: '100vh', maxHeight: '100vh', margin: 0, borderRadius: 0 }}>
+        <div className="min-h-full flex flex-col" style={{ padding: '2rem' }}>
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-foreground">
               {isEdit ? "Изменить заказ" : "Бронирование выступления"}
@@ -183,33 +253,26 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
             </div>
           )}
 
-          <div className="mt-6 space-y-4">
+          <div className="mt-6 space-y-4 flex-1">
             {/* Дата */}
             <div className="space-y-2">
               <Label htmlFor="date">Дата мероприятия *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP", { locale: ru }) : "Выберите дату"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                id="date"
+                type="date"
+                value={date ? format(date, "yyyy-MM-dd") : ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) {
+                    setDate(undefined);
+                    return;
+                  }
+                  const parsed = new Date(value + "T00:00:00");
+                  if (!isNaN(parsed.getTime())) {
+                    setDate(parsed);
+                  }
+                }}
+              />
             </div>
 
             {/* Тип праздника */}
@@ -229,15 +292,28 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
               </Select>
             </div>
 
-            {/* Время */}
+            {/* Время начала */}
             <div className="space-y-2">
-              <Label htmlFor="time">Время *</Label>
+              <Label htmlFor="time">Время начала *</Label>
               <Input
                 id="time"
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                placeholder="Выберите время"
+                placeholder="Выберите время начала"
+              />
+            </div>
+
+            {/* Время окончания */}
+            <div className="space-y-2">
+              <Label htmlFor="endTime">Время окончания *</Label>
+              <Input
+                id="endTime"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                placeholder="Выберите время окончания"
+                min={time || undefined}
               />
             </div>
 

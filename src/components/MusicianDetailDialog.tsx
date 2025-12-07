@@ -47,10 +47,10 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-t-[24px] rounded-b-none border-0 p-0 fixed bottom-0 left-[50%] translate-x-[-50%] translate-y-0 top-auto h-[100vh] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom flex flex-col [&_button.absolute]:text-white [&_button.absolute]:hover:text-white [&_button.absolute]:opacity-90 [&_button.absolute:hover]:opacity-100">
+      <DialogContent className="max-w-md max-h-[85vh] rounded-[24px] border p-0 overflow-hidden flex flex-col">
         {musician ? (
-          <div className="flex flex-col h-full overflow-hidden">
-            {/* Video */}
+          <div className="flex flex-col overflow-hidden">
+            {/* Video - компактный */}
             <div className="aspect-video w-full flex-shrink-0 overflow-hidden rounded-t-[24px] bg-black">
               {musician.videoUrl ? (
                 <video
@@ -60,36 +60,49 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
                   poster={musician.gallery?.[0]}
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-white">Видео недоступно</div>
+                musician.image ? (
+                  <ImageWithFallback 
+                    src={musician.image} 
+                    alt={musician.name} 
+                    fallbackText={musician.name.charAt(0)}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                    {musician.name.charAt(0)}
+                  </div>
+                )
               )}
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <div className="space-y-5 px-5 pt-6 pb-6">
-              <DialogHeader className="text-left">
-                <div className="flex items-start justify-between gap-4">
-                  <DialogTitle className="text-2xl font-bold text-foreground">{musician.name}</DialogTitle>
+              <div className="space-y-4 px-5 pt-4 pb-4">
+              <DialogHeader className="text-left pb-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <DialogTitle className="text-xl font-bold text-foreground truncate">{musician.name}</DialogTitle>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                      <Music size={14} />
+                      <span>{musician.style}</span>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={onToggleFavorite}
                     aria-label={isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
                     aria-pressed={isFavorite}
-                    className={`rounded-full border p-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    className={`flex-shrink-0 rounded-full border p-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       isFavorite ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    <Heart size={20} className={isFavorite ? "fill-current text-primary" : "text-current"} />
+                    <Heart size={18} className={isFavorite ? "fill-current text-primary" : "text-current"} />
                   </button>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Music size={16} />
-                  <span>{musician.style}</span>
                 </div>
               </DialogHeader>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                  <Star size={14} className="fill-primary text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-sm font-medium text-primary">
+                  <Star size={12} className="fill-primary text-primary" />
                   {musician.rating}
                 </div>
                 <div className="text-base font-semibold text-foreground">{musician.price}</div>
@@ -106,31 +119,31 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
                 </div>
               )}
 
-              {/* Info blocks */}
-              <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2 rounded-[14px] bg-muted/50 p-3">
-                  <MapPin size={16} className="text-primary" />
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Город</p>
-                    <p className="font-medium text-foreground">{musician.city}</p>
+              {/* Info blocks - компактные */}
+              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 rounded-[12px] bg-muted/50 p-2.5">
+                  <MapPin size={14} className="text-primary flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground truncate">Город</p>
+                    <p className="font-medium text-foreground text-sm truncate">{musician.city}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 rounded-[14px] bg-muted/50 p-3">
-                  <Clock3 size={16} className="text-primary" />
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Опыт</p>
-                    <p className="font-medium text-foreground">{musician.experience}</p>
+                <div className="flex items-center gap-2 rounded-[12px] bg-muted/50 p-2.5">
+                  <Clock3 size={14} className="text-primary flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground truncate">Опыт</p>
+                    <p className="font-medium text-foreground text-sm truncate">{musician.experience}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Gallery */}
+              {/* Gallery - компактная */}
               {musician.gallery && musician.gallery.length > 0 && (
                 <div>
-                  <p className="mb-3 text-sm font-semibold text-foreground">Галерея</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {musician.gallery.map((image, index) => (
-                      <div key={index} className="h-20 overflow-hidden rounded-[12px] bg-muted">
+                  <p className="mb-2 text-xs font-semibold text-foreground">Галерея</p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {musician.gallery.slice(0, 6).map((image, index) => (
+                      <div key={index} className="h-16 overflow-hidden rounded-[10px] bg-muted">
                         <ImageWithFallback 
                           src={image} 
                           alt={`${musician.name} фото ${index + 1}`} 
@@ -143,26 +156,23 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
                 </div>
               )}
 
-              {/* Description */}
+              {/* Description - компактное */}
               <div>
-                <p className="mb-2 text-sm font-semibold text-foreground">Описание</p>
-                <p className="text-sm text-muted-foreground">{musician.description}</p>
-              </div>
-
-              {/* Actions */}
-              <div className="pt-4">
-                <Button 
-                  className="h-[50px] w-full rounded-[16px] text-base font-semibold"
-                  onClick={onBook}
-                >
-                  Забронировать выступление
-                </Button>
+                <p className="mb-1.5 text-xs font-semibold text-foreground">Описание</p>
+                <p className="text-xs text-muted-foreground line-clamp-3">{musician.description}</p>
               </div>
               </div>
             </div>
             
-            {/* Пустое пространство внизу */}
-            <div className="h-20 flex-shrink-0"></div>
+            {/* Кнопка внизу - статичная */}
+            <div className="border-t border-border bg-background p-4 pt-3">
+              <Button 
+                className="h-[44px] w-full rounded-[16px] text-base font-semibold"
+                onClick={onBook}
+              >
+                Забронировать выступление
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="p-6 text-center text-sm text-muted-foreground">Выберите музыканта</div>

@@ -6,7 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import { findOrderWithDefaults } from "@/lib/orders";
 import { getOrderById } from "@/lib/firebase-db";
 import { sendChatMessage, subscribeToChatMessages } from "@/lib/firebase-db";
-import { getUserProfile } from "@/lib/firebase-db";
+import { getUserProfile, isAdminProfile } from "@/lib/firebase-db";
 import { auth } from "@/lib/firebase";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ const ChatPage = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [isMusician, setIsMusician] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +65,9 @@ const ChatPage = () => {
       if (user && foundOrder) {
         try {
           const profile = await getUserProfile(user.uid);
-          const userIsMusician = profile?.role === "musician" || !!profile?.musicianName;
+          const userIsAdmin = isAdminProfile(user.uid, profile);
+          const userIsMusician = userIsAdmin || profile?.role === "musician" || !!profile?.musicianName;
+          setIsAdmin(userIsAdmin);
           setIsMusician(userIsMusician);
         } catch (error) {
           console.error("Ошибка при проверке роли пользователя:", error);
@@ -94,9 +97,54 @@ const ChatPage = () => {
     };
   }, [order, id]);
 
+  // Предотвращаем скролл страницы в чате
   useEffect(() => {
-    const timeout = setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    return () => clearTimeout(timeout);
+    const preventPageScroll = (e: WheelEvent | TouchEvent) => {
+      // Находим контейнер чата
+      const chatContainer = document.querySelector('[class*="overflow-y-auto"]') as HTMLElement;
+      if (chatContainer) {
+        const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+        const isAtTop = scrollTop === 0;
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+        
+        // Если скроллим вверх и контейнер уже вверху, или вниз и контейнер уже внизу
+        // предотвращаем скролл страницы
+        if (e instanceof WheelEvent) {
+          if ((e.deltaY < 0 && isAtTop) || (e.deltaY > 0 && isAtBottom)) {
+            e.stopPropagation();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('wheel', preventPageScroll, { passive: false });
+    window.addEventListener('touchmove', preventPageScroll, { passive: false });
+
+    return () => {
+      window.removeEventListener('wheel', preventPageScroll);
+      window.removeEventListener('touchmove', preventPageScroll);
+    };
+  }, []);
+
+  // Автоматический скролл в области чата при новых сообщениях
+  useEffect(() => {
+    if (bottomRef.current) {
+      // Находим родительский контейнер с overflow-y-auto (область чата)
+      const scrollContainer = bottomRef.current.closest('[class*="overflow-y-auto"]') as HTMLElement;
+      if (scrollContainer) {
+        const timeout = setTimeout(() => {
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: "smooth"
+          });
+        }, 100);
+        return () => clearTimeout(timeout);
+      } else {
+        // Fallback на старый метод
+        const timeout = setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+        return () => clearTimeout(timeout);
+      }
+    }
   }, [messages]);
 
   const handleSend = async () => {
@@ -111,7 +159,14 @@ const ChatPage = () => {
     }
 
     // Определяем отправителя
-    const sender: "client" | "musician" = isMusician ? "musician" : "client";
+    // Админ может отправлять сообщения как музыкант в любой чат
+    let sender: "client" | "musician";
+    if (isAdmin) {
+      // Админ всегда отправляет как музыкант
+      sender = "musician";
+    } else {
+      sender = isMusician ? "musician" : "client";
+    }
 
     // Отправляем сообщение в Firestore
     try {
@@ -131,6 +186,8 @@ const ChatPage = () => {
       if (success) {
         console.log("✅ Сообщение успешно отправлено");
         setText("");
+        // Предотвращаем скролл страницы вниз после отправки
+        window.scrollTo({ top: 0, behavior: "instant" });
       } else {
         console.error("❌ Не удалось отправить сообщение (success = false)");
       }
@@ -162,8 +219,14 @@ const ChatPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
+    <div className="flex h-screen flex-col bg-background overflow-hidden" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      {/* Фиксированный заголовок */}
+      <header 
+        className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur-sm z-50"
+        style={{ 
+          paddingTop: `calc(1rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-4">
           <button
             onClick={handleBack}
@@ -188,19 +251,23 @@ const ChatPage = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex h-[calc(100vh-160px)] max-w-md flex-col px-4 py-4">
+      {/* Основная область - скроллируется только область сообщений */}
+      <main className="flex-1 flex flex-col min-h-0 mx-auto w-full max-w-md px-4 py-2 overflow-hidden pb-20">
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center rounded-[20px] border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
             Загрузка чата...
           </div>
         ) : order ? (
           <>
-            <ScrollArea className="flex-1 rounded-[20px] border border-border bg-card p-4">
+            {/* Область сообщений - единственная скроллируемая часть */}
+            <div className="flex-1 min-h-0 max-h-[calc(100vh-430px)] rounded-[20px] border border-border bg-card p-4 overflow-y-auto">
               <div className="space-y-4">
                 {messages.map((message) => {
                   // Определяем, является ли сообщение от текущего пользователя
-                  const isMyMessage = (isMusician && message.sender === "musician") || 
-                                     (!isMusician && message.sender === "client");
+                  // Админ видит все сообщения от музыканта как свои
+                  const isMyMessage = (isAdmin && message.sender === "musician") ||
+                                     (isMusician && message.sender === "musician") || 
+                                     (!isMusician && !isAdmin && message.sender === "client");
                   
                   return (
                     <div key={message.id} className={`flex ${isMyMessage ? "justify-end" : "justify-start"}`}>
@@ -225,17 +292,24 @@ const ChatPage = () => {
                 })}
                 <div ref={bottomRef} />
               </div>
-            </ScrollArea>
+            </div>
 
-            <div className="mt-4 space-y-3">
+            {/* Фиксированная область ввода */}
+            <div className="flex-shrink-0 mt-2 space-y-2">
               <Textarea
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Напишите сообщение..."
-                className="min-h-[90px] rounded-[16px]"
+                className="min-h-[70px] max-h-[100px] rounded-[16px] resize-none"
               />
-              <Button onClick={handleSend} className="h-[48px] w-full rounded-[16px] text-base font-semibold">
+              <Button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSend();
+                }} 
+                className="h-[44px] w-full rounded-[16px] text-base font-semibold"
+              >
                 Отправить
               </Button>
             </div>
@@ -247,7 +321,10 @@ const ChatPage = () => {
         )}
       </main>
 
-      <BottomNav />
+      {/* Фиксированная нижняя навигация */}
+      <div className="flex-shrink-0">
+        <BottomNav />
+      </div>
     </div>
   );
 };

@@ -17,14 +17,27 @@ const ImageWithFallback = ({
 }: ImageWithFallbackProps) => {
   const [hasError, setHasError] = useState(false);
   const [imageSrc, setImageSrc] = useState(src);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Обновляем imageSrc при изменении src prop
   useEffect(() => {
     setImageSrc(src);
     setHasError(false);
+    setRetryCount(0);
   }, [src]);
 
   const handleError = () => {
+    // Пытаемся повторить загрузку один раз (для временных сетевых ошибок)
+    if (retryCount < 1 && imageSrc) {
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        // Принудительно перезагружаем изображение, добавляя timestamp для обхода кэша
+        const separator = imageSrc.includes('?') ? '&' : '?';
+        setImageSrc(`${imageSrc}${separator}_retry=${Date.now()}`);
+      }, 1000);
+      return;
+    }
+    
     if (!hasError) {
       setHasError(true);
       setImageSrc(undefined);

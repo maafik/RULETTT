@@ -33,6 +33,16 @@ if (missingVars.length > 0 && typeof window !== "undefined") {
   console.error("💡 Добавьте их в ваш .env файл или системные переменные окружения.");
 }
 
+// Проверка для localhost
+if (typeof window !== "undefined") {
+  const hostname = window.location.hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    console.log("🌐 Работа на localhost:", window.location.href);
+    console.log("💡 Убедитесь, что localhost добавлен в Authorized domains в Firebase Console");
+    console.log("💡 SMS должна приходить на localhost, если все настроено правильно");
+  }
+}
+
 const firebaseConfig = {
   apiKey: requiredEnvVars.apiKey || "",
   authDomain: requiredEnvVars.authDomain || "",
@@ -42,19 +52,60 @@ const firebaseConfig = {
   appId: requiredEnvVars.appId || "",
 };
 
-let app;
-try {
-  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-} catch (error) {
-  console.error("❌ Ошибка при инициализации Firebase:", error);
-  if (typeof window !== "undefined") {
-    console.error("💡 Проверьте локальные переменные окружения.");
+// Проверяем, есть ли хотя бы минимальная конфигурация
+const hasValidConfig = firebaseConfig.apiKey && 
+                      firebaseConfig.authDomain && 
+                      firebaseConfig.projectId;
+
+let app: any = null;
+let auth: any = null;
+let db: any = null;
+
+if (hasValidConfig) {
+  try {
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    console.log("✅ Firebase инициализирован успешно");
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (error) {
+    console.error("❌ Ошибка при инициализации Firebase:", error);
+    if (typeof window !== "undefined") {
+      console.error("💡 Проверьте локальные переменные окружения.");
+      console.error("💡 Приложение продолжит работу, но некоторые функции могут быть недоступны.");
+    }
+    // Пытаемся получить существующее приложение
+    try {
+      if (getApps().length > 0) {
+        app = getApp();
+        console.log("✅ Используем существующее Firebase приложение");
+        auth = getAuth(app);
+        db = getFirestore(app);
+      } else {
+        console.warn("⚠️ Firebase конфигурация неполная, приложение будет работать в ограниченном режиме");
+      }
+    } catch (fallbackError) {
+      console.error("❌ Критическая ошибка при инициализации Firebase:", fallbackError);
+      console.warn("⚠️ Продолжаем работу без Firebase");
+    }
   }
-  throw error;
+} else {
+  console.warn("⚠️ Firebase конфигурация отсутствует или неполная");
+  console.warn("⚠️ Переменные окружения не найдены. Приложение будет работать в ограниченном режиме.");
+  console.warn("💡 Создайте .env файл с переменными VITE_FIREBASE_* для полной функциональности");
+  
+  // Создаем заглушки для предотвращения ошибок
+  // Эти объекты будут проверяться перед использованием
 }
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Экспортируем с проверками
+export { auth, db };
+
+// Примечание о reCAPTCHA:
+// Firebase Auth пытается использовать reCAPTCHA Enterprise, но если он не настроен в консоли Firebase,
+// автоматически переключается на reCAPTCHA v2. Предупреждение в консоли об этом - это нормально.
+// Функциональность работает корректно с reCAPTCHA v2.
+// Чтобы устранить предупреждение, настройте reCAPTCHA Enterprise в Firebase Console:
+// https://console.firebase.google.com/project/_/settings/recaptcha
 
 // Инициализация Firebase Cloud Messaging (только в браузере)
 let messaging: ReturnType<typeof getMessaging> | null = null;
@@ -98,8 +149,8 @@ async function initializeMessaging(): Promise<ReturnType<typeof getMessaging> | 
   return messagingInitPromise;
 }
 
-// Инициализируем сразу, если в браузере
-if (typeof window !== "undefined") {
+// Инициализируем сразу, если в браузере и Firebase доступен
+if (typeof window !== "undefined" && app) {
   initializeMessaging();
 }
 

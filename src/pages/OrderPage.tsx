@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { App } from "@capacitor/app";
 import OrderStatusChip from "@/components/OrderStatusChip";
 import MusicianOrderCard from "@/components/MusicianOrderCard";
 import OrderDetailsBlock from "@/components/OrderDetailsBlock";
@@ -130,6 +131,32 @@ const OrderPage = () => {
     
     checkUserRole();
   }, [id]);
+
+  // Обработка кнопки "назад" на Android
+  useEffect(() => {
+    let listener: any = null;
+
+    const setupBackButton = async () => {
+      const handleBackButton = async () => {
+        const canGoBack = window.history.length > 1;
+        if (canGoBack) {
+          navigate("/orders");
+        } else {
+          await App.exitApp();
+        }
+      };
+
+      listener = await App.addListener('backButton', handleBackButton);
+    };
+
+    setupBackButton();
+
+    return () => {
+      if (listener) {
+        listener.remove();
+      }
+    };
+  }, [navigate]);
 
   // Получаем номер телефона музыканта для клиентов
   useEffect(() => {
@@ -363,10 +390,8 @@ const OrderPage = () => {
     if (!order) return;
 
     const formattedDate = format(bookingData.date, "d MMMM yyyy", { locale: ru });
-    const [hours, minutes] = bookingData.time.split(":");
-    const startTime = `${hours}:${minutes}`;
-    const endHours = (parseInt(hours) + 2).toString().padStart(2, "0");
-    const endTime = `${endHours}:${minutes}`;
+    const startTime = bookingData.time;
+    const endTime = bookingData.endTime;
     const timeRange = `${startTime}–${endTime}`;
 
     const updatedData = {
@@ -449,15 +474,19 @@ const OrderPage = () => {
     setIsConfirmDialogOpen(true);
   };
 
-  const handleConfirmOrder = async (data: { amount: string; time: string; location: string }) => {
+  const handleConfirmOrder = async (data: { amount: string; time: string; location: string; prepayment?: string }) => {
     if (!order) return;
 
-    const updatedData = {
+    const updatedData: any = {
       price: `${data.amount} ₽`,
       time: data.time,
       location: data.location,
       status: "payment-pending" as const,
     };
+
+    if (data.prepayment) {
+      updatedData.prepayment = data.prepayment;
+    }
 
     // Обновляем в Firestore (приоритет - всегда обновляем в Firestore)
     let firestoreSuccess = false;
@@ -698,6 +727,8 @@ const OrderPage = () => {
               time={order.time}
               location={order.location}
               format={order.format}
+              prepayment={order.prepayment}
+              orderId={order.id}
             />
           )}
 
