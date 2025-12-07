@@ -13,9 +13,13 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // FCM токены пользователей - пользователи могут читать и писать свои токены
+    // FCM токены пользователей
+    // Читать токены может любой авторизованный пользователь (нужно, чтобы музыкант мог прочитать токен клиента
+    // и отправить ему push-уведомление через backend)
+    // Записывать токен может только сам владелец (по uid)
     match /userFCMTokens/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Уведомления - пользователи могут создавать и читать свои уведомления

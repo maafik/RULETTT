@@ -260,6 +260,7 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
               <Input
                 id="date"
                 type="date"
+                min={format(startOfToday(), "yyyy-MM-dd")}
                 value={date ? format(date, "yyyy-MM-dd") : ""}
                 onChange={(e) => {
                   const value = e.target.value;

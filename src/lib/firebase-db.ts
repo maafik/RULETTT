@@ -827,6 +827,7 @@ async function sendStatusChangeNotification(
         // Музыкант подтвердил заказ -> уведомление клиенту
         if (customerUid) {
           await notifyOrderConfirmed(customerUid, orderId, artistName);
+          await sendOrderConfirmedPush(orderId, artistName, customerUid);
         }
         break;
 
@@ -862,6 +863,60 @@ async function sendStatusChangeNotification(
     }
   } catch (error) {
     console.error("❌ Ошибка при отправке уведомления:", error);
+  }
+}
+
+/**
+ * Отправить push-уведомление клиенту при подтверждении заказа музыкантом через Render backend.
+ */
+async function sendOrderConfirmedPush(
+  orderId: string,
+  artistName: string,
+  customerUid: string
+): Promise<void> {
+  try {
+    const title = "Заказ подтвержден";
+    const body = `${artistName} подтвердил заказ. Ожидается оплата.`;
+
+    const baseUrl =
+      (import.meta as any).env.VITE_PAYMENT_API_URL ||
+      "http://localhost:4000";
+    const url = `${baseUrl.replace(/\/$/, "")}/send-order-push`;
+
+    console.log("📲 Отправка push-уведомления клиенту через backend (Admin SDK):", {
+      url,
+      orderId,
+      customerUid,
+    });
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerUid,
+        title,
+        body,
+        data: {
+          orderId,
+          type: "order-confirmed",
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(
+        "❌ Ошибка ответа backend при отправке push-уведомления (Admin SDK):",
+        response.status,
+        text
+      );
+    } else {
+      console.log("✅ Push-уведомление клиенту отправлено через backend (Admin SDK)");
+    }
+  } catch (error) {
+    console.error("❌ Ошибка при отправке push-уведомления клиенту (Admin SDK):", error);
   }
 }
 

@@ -1,9 +1,29 @@
 import express from "express";
 import cors from "cors";
+import admin from "firebase-admin";
 
 // YooKassa config: желательно вынести в переменные окружения
 const YOOKASSA_SHOP_ID = "1222923";
 const YOOKASSA_SECRET_KEY = "test_twl-65kK1FZoIvSdt1B_wthG_EfXaJGqpbAoqqNB5-4";
+
+// Инициализация Firebase Admin SDK для работы с Firestore и FCM (HTTP v1)
+if (!admin.apps.length) {
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+  if (!serviceAccountJson) {
+    console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT не задан. Endpoints, зависящие от Admin SDK, будут недоступны.");
+  } else {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log("✅ Firebase Admin SDK инициализирован");
+    } catch (e) {
+      console.error("❌ Не удалось распарсить FIREBASE_SERVICE_ACCOUNT:", e);
+    }
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -18,6 +38,73 @@ app.get("/health", (_req, res) => {
 // Простой ответ на GET /, чтобы не было 404 в DevTools
 app.get("/", (_req, res) => {
   res.send("YooKassa payment server is running");
+});
+
+// Эндпоинт для отправки push-уведомления клиенту по его UID через Admin SDK
+// Ожидает в теле: { customerUid, title, body, data }
+app.post("/send-order-push", async (req, res) => {
+  try {
+    if (!admin.apps.length) {
+      return res.status(500).json({
+        success: false,
+        error: "Firebase Admin SDK не инициализирован (нет FIREBASE_SERVICE_ACCOUNT)",
+      });
+    }
+
+    const { customerUid, title, body, data } = req.body || {};
+
+    if (!customerUid || !title || !body) {
+      return res.status(400).json({
+        success: false,
+        error: "customerUid, title и body обязательны",
+      });
+    }
+
+    const db = admin.firestore();
+    const tokenRef = db.doc(`userFCMTokens/${customerUid}`);
+    const tokenSnap = await tokenRef.get();
+
+    if (!tokenSnap.exists) {
+      console.warn("⚠️ FCM токен не найден для пользователя:", customerUid);
+      return res.status(404).json({ success: false, error: "FCM токен не найден" });
+    }
+
+    const tokenData = tokenSnap.data() || {};
+    const token = tokenData.token;
+
+    if (!token) {
+      console.warn("⚠️ Пустой FCM токен для пользователя:", customerUid);
+      return res.status(404).json({ success: false, error: "FCM токен пустой" });
+    }
+
+    const message = {
+      token,
+      notification: {
+        title,
+        body,
+      },
+      data: data || {},
+    };
+
+    console.log("📲 Отправка push-уведомления через Admin SDK", {
+      customerUid,
+      hasToken: !!token,
+      title,
+      body,
+      data,
+    });
+
+    const response = await admin.messaging().send(message);
+    console.log("✅ Push-уведомление отправлено через Admin SDK:", response);
+
+    return res.json({ success: true, messageId: response });
+  } catch (error) {
+    console.error("❌ Ошибка при отправке push-уведомления через Admin SDK:", error);
+    return res.status(500).json({
+      success: false,
+      error: error && error.message ? error.message : "Внутренняя ошибка сервера",
+    });
+  }
 });
 
 // Эндпоинт для создания платежа в YooKassa
@@ -93,6 +180,69 @@ app.post("/create-payment", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Ошибка при создании платежа YooKassa (server):", error);
+    return res.status(500).json({
+      success: false,
+      error: error && error.message ? error.message : "Внутренняя ошибка сервера",
+    });
+  }
+});
+
+// Эндпоинт для отправки push-уведомлений через FCM
+app.post("/send-push", async (req, res) => {
+  try {
+    const { token, title, body, data } = req.body || {};
+
+    if (!token || !title || !body) {
+      return res.status(400).json({ success: false, error: "token, title и body обязательны" });
+    }
+
+    const serverKey = process.env.FCM_SERVER_KEY;
+    if (!serverKey) {
+      console.error("❌ FCM_SERVER_KEY не задан в переменных окружения");
+      return res.status(500).json({ success: false, error: "FCM_SERVER_KEY не настроен" });
+    }
+
+    const payload = {
+      to: token,
+      notification: {
+        title,
+        body,
+      },
+      data: data || {},
+    };
+
+    console.log("📲 Отправка push-уведомления через FCM", {
+      hasToken: !!token,
+      title,
+      body,
+      data,
+    });
+
+    const response = await fetch("https://fcm.googleapis.com/fcm/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `key=${serverKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      console.error("❌ Ошибка ответа FCM:", response.status, text);
+      return res.status(500).json({
+        success: false,
+        error: "Ошибка при отправке push-уведомления через FCM",
+        providerStatus: response.status,
+        providerResponse: text,
+      });
+    }
+
+    console.log("✅ FCM ответ:", text);
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("❌ Ошибка при отправке push-уведомления (server):", error);
     return res.status(500).json({
       success: false,
       error: error && error.message ? error.message : "Внутренняя ошибка сервера",
