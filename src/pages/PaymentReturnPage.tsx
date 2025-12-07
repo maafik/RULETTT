@@ -4,6 +4,7 @@ import { handlePaymentReturn } from "@/lib/payment";
 import { useToast } from "@/hooks/use-toast";
 import { updateOrder } from "@/lib/orders";
 import { updateOrderStatus } from "@/lib/firebase-db";
+import { closeInAppBrowserIfNative } from "@/lib/payment-browser";
 
 function useQuery() {
   return new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
@@ -56,6 +57,7 @@ const PaymentReturnPage = () => {
             description: `Оплата для заказа №${orderId} подтверждена. Статус: выступление в процессе.`,
             duration: 3000,
           });
+          await closeInAppBrowserIfNative();
           navigate(`/order/${orderId}`, { replace: true });
         } else {
           toast({
@@ -64,6 +66,7 @@ const PaymentReturnPage = () => {
             variant: "destructive",
             duration: 3000,
           });
+          await closeInAppBrowserIfNative();
           navigate(`/order/${orderId}`, { replace: true });
         }
       } catch (error) {
@@ -74,6 +77,7 @@ const PaymentReturnPage = () => {
           variant: "destructive",
           duration: 3000,
         });
+        await closeInAppBrowserIfNative();
         navigate(`/order/${orderId}`, { replace: true });
       }
     })();

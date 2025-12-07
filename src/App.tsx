@@ -21,6 +21,7 @@ import LoginPage from "./pages/LoginPage";
 import ScrollRestoration from "./components/ScrollRestoration";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, initializeNotificationsForUser } from "@/lib/firebase";
+import { initializeCapacitorPushForCurrentUser } from "@/lib/capacitor-push";
 import { useNavigate } from "react-router-dom";
 import { clearOrdersCache } from "@/lib/orders";
 import { ORDERS_STORAGE_KEY } from "@/constants/storage";
@@ -71,11 +72,29 @@ const AppContent = () => {
       // Инициализируем push-уведомления для авторизованного пользователя
       if (user && currentUid) {
         initializeNotificationsForUser(currentUid);
+        initializeCapacitorPushForCurrentUser();
       }
     });
 
     return () => unsubscribe();
   }, [navigate]);
+
+  // После того как авторизация готова и пользователь залогинен,
+  // проверяем, нужно ли вернуть его на конкретный заказ после оплаты
+  useEffect(() => {
+    if (!isAuthReady || !isAuthenticated) return;
+    if (typeof window === "undefined") return;
+
+    try {
+      const returnOrderId = window.localStorage.getItem("return_to_order_after_payment");
+      if (returnOrderId) {
+        window.localStorage.removeItem("return_to_order_after_payment");
+        navigate(`/order/${returnOrderId}`, { replace: true });
+      }
+    } catch (e) {
+      console.warn("⚠️ Не удалось прочитать return_to_order_after_payment из localStorage:", e);
+    }
+  }, [isAuthReady, isAuthenticated, navigate]);
 
   // Добавляем текущую страницу в историю при изменении маршрута и скроллим вверх
   useEffect(() => {

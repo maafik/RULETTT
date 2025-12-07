@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "773725722932",
+    "firebase_url": "https://frebaze-94560-default-rtdb.firebaseio.com",
+    "project_id": "frebaze-94560",
+    "storage_bucket": "frebaze-94560.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:773725722932:android:27f718c80814d8f23b6d61",
+        "android_client_info": {
+          "package_name": "com.musicbooking.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGzuKT5dkGEs0f-ZXeyIkOrxj0Dbnewuw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
