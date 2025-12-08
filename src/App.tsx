@@ -14,6 +14,7 @@ import SettingsPage from "./pages/SettingsPage";
 import HelpPage from "./pages/HelpPage";
 import SupportPage from "./pages/SupportPage";
 import PaymentReturnPage from "./pages/PaymentReturnPage";
+import PaymentWidgetPage from "./pages/PaymentWidgetPage";
 import NotFound from "./pages/NotFound";
 import ChatPage from "./pages/ChatPage";
 import MusicianProfilePage from "./pages/MusicianProfilePage";
@@ -251,6 +252,10 @@ const AppContent = () => {
         <Route
           path="/payment/return"
           element={isAuthenticated ? <PaymentReturnPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/payment/widget"
+          element={isAuthenticated ? <PaymentWidgetPage /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/order/:id/profile"

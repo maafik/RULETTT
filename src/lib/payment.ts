@@ -19,7 +19,11 @@ export interface PaymentData {
 export interface PaymentResult {
   success: boolean;
   paymentId?: string;
+  // Для старого redirect-флоу через confirmation_url
   confirmationUrl?: string;
+  // Для embedded-виджета YooKassa
+  confirmationToken?: string;
+  returnUrl?: string;
   error?: string;
 }
 
@@ -74,7 +78,9 @@ export const createYooKassaPayment = async (
 
     const result = await response.json();
 
-    if (!result.success || !result.confirmationUrl) {
+    // Новый формат ответа backend: success, paymentId, confirmationToken, returnUrl
+    // Поддерживаем также старый формат с confirmationUrl на случай отката.
+    if (!result.success || (!result.confirmationUrl && !result.confirmationToken)) {
       console.error("❌ Backend вернул ошибку при создании платежа:", result);
       return {
         success: false,
@@ -96,6 +102,8 @@ export const createYooKassaPayment = async (
       success: true,
       paymentId: result.paymentId,
       confirmationUrl: result.confirmationUrl,
+      confirmationToken: result.confirmationToken,
+      returnUrl: result.returnUrl,
     };
   } catch (error) {
     console.error("❌ Ошибка при создании платежа YooKassa:", error);

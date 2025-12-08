@@ -141,9 +141,9 @@ app.post("/create-payment", async (req, res) => {
         value: formattedAmount,
         currency: "RUB",
       },
+      // Для виджета YooKassa используем тип embedded
       confirmation: {
-        type: "redirect",
-        return_url: returnUrl,
+        type: "embedded",
       },
       capture: true,
       description: description || `Оплата заказа ${orderId}`,
@@ -178,12 +178,12 @@ app.post("/create-payment", async (req, res) => {
     const data = await response.json();
     console.log("✅ Платеж создан в YooKassa", { id: data.id, status: data.status });
 
-    const confirmationUrl = data.confirmation && data.confirmation.confirmation_url;
-
     return res.json({
       success: true,
       paymentId: data.id,
-      confirmationUrl,
+      confirmationToken: data.confirmation && data.confirmation.confirmation_token,
+      // Ссылка возврата после оплаты, чтобы фронтенд мог использовать её при инициализации виджета
+      returnUrl,
     });
   } catch (error) {
     console.error("❌ Ошибка при создании платежа YooKassa (server):", error);

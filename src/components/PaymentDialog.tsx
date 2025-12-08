@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +42,8 @@ const PaymentDialog = ({
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const commentTextareaRef = useState<HTMLTextAreaElement | null>(null);
+  const [commentTextareaRef] = useState<HTMLTextAreaElement | null>(null);
+  const navigate = useNavigate();
 
   // Предотвращаем автоматический фокус на textarea при открытии
   useEffect(() => {
@@ -96,17 +98,33 @@ const PaymentDialog = ({
       const description = `Оплата заказа ${orderId}`;
       const paymentResult = await createYooKassaPayment(amountValue, description, orderId);
 
-      if (paymentResult.success && paymentResult.confirmationUrl) {
-        // Сохраняем orderId, чтобы после оплаты вернуть пользователя на страницу заказа
+      if (paymentResult.success) {
+        const paymentId = paymentResult.paymentId || "";
+        const confirmationToken = paymentResult.confirmationToken || "";
+        const returnUrl = paymentResult.returnUrl || "";
+
+        if (!paymentId || !confirmationToken) {
+          console.error("❌ Не хватает данных для инициализации виджета YooKassa:", paymentResult);
+          return;
+        }
+
+        // Сохраняем orderId, чтобы после оплаты вернуть пользователя на страницу заказа (fallback в App.tsx)
         if (typeof window !== "undefined") {
           try {
             window.localStorage.setItem("return_to_order_after_payment", orderId);
           } catch (e) {
             console.warn("⚠️ Не удалось сохранить orderId для возврата после оплаты:", e);
           }
-          // Перенаправляем на страницу оплаты YooKassa в том же WebView/браузере
-          window.location.href = paymentResult.confirmationUrl;
         }
+
+        const params = new URLSearchParams({
+          orderId,
+          paymentId,
+          confirmationToken,
+          returnUrl,
+        });
+
+        navigate(`/payment/widget?${params.toString()}`);
       } else {
         console.error("Ошибка при создании платежа YooKassa:", paymentResult.error);
         // Не подтверждаем оплату автоматически, оставляем диалог открытым
