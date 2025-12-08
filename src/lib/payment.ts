@@ -74,7 +74,10 @@ export const createYooKassaPayment = async (
 
     const result = await response.json();
 
-    if (!result.success || !result.confirmationUrl) {
+    // Backend может вернуть либо confirmationUrl (старый формат), либо returnUrl (новый формат)
+    const confirmationUrl = result.confirmationUrl || result.returnUrl;
+
+    if (!result.success || !confirmationUrl) {
       console.error("❌ Backend вернул ошибку при создании платежа:", result);
       return {
         success: false,
@@ -95,7 +98,7 @@ export const createYooKassaPayment = async (
     return {
       success: true,
       paymentId: result.paymentId,
-      confirmationUrl: result.confirmationUrl,
+      confirmationUrl,
     };
   } catch (error) {
     console.error("❌ Ошибка при создании платежа YooKassa:", error);
