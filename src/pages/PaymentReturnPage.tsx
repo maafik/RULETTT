@@ -138,9 +138,7 @@ const PaymentReturnPage = () => {
     await closeInAppBrowserIfNative();
 
     if (typeof window !== "undefined") {
-      try {
-        window.close();
-      } catch {}
+      window.location.href = "musicbooking://orders";
     }
   };
 

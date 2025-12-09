@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 
 console.log("🚀 Начало инициализации приложения");
 console.log("📱 Платформа:", Capacitor.isNativePlatform() ? Capacitor.getPlatform() : "Web");
@@ -10,7 +11,18 @@ console.log("🌐 User Agent:", typeof navigator !== "undefined" ? navigator.use
 // Инициализация Capacitor
 if (Capacitor.isNativePlatform()) {
   console.log("📱 Запущено в нативном приложении:", Capacitor.getPlatform());
-  
+
+  CapacitorApp.addListener("appUrlOpen", (event) => {
+    try {
+      const url = new URL(event.url);
+      if (url.host === "orders" || url.pathname === "/orders") {
+        window.location.href = "/orders";
+      }
+    } catch (error) {
+      console.warn("⚠️ Ошибка обработки deeplink:", error);
+    }
+  });
+
   // Импортируем и инициализируем плагины для нативных платформ
   import("@capacitor/splash-screen").then(({ SplashScreen }) => {
     // Скрываем splash screen с небольшой задержкой, чтобы приложение успело загрузиться
