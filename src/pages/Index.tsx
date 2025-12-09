@@ -614,7 +614,7 @@ const Index = () => {
       <main 
         className="mx-auto max-w-md px-4 space-y-6 mt-2 pb-4"
         style={{ 
-          paddingTop: `calc(4.4rem + env(safe-area-inset-top, 0px))`
+          paddingTop: `calc(4.4rem + env(safe-area-inset-top, 0px) - 10px)`
         }}
       >
         {/* Categories */}

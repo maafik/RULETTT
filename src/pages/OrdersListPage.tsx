@@ -184,7 +184,7 @@ const OrdersListPage = () => {
       <main 
         className="mx-auto max-w-md px-4 py-4 space-y-3"
         style={{ 
-          paddingTop: `calc(5.4rem + env(safe-area-inset-top, 0px))`
+          paddingTop: `calc(5.4rem + env(safe-area-inset-top, 0px) - 10px)`
         }}
       >
         {isLoading ? (

@@ -24,7 +24,7 @@ const SettingsPage = () => {
       <main 
         className="mx-auto max-w-md px-4 py-8 space-y-4"
         style={{ 
-          paddingTop: `calc(5.5rem + env(safe-area-inset-top, 0px))`
+          paddingTop: `calc(5.5rem + env(safe-area-inset-top, 0px) - 10px)`
         }}
       >
         <Card className="rounded-[20px] border-0 shadow-sm">

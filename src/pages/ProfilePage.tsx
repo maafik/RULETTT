@@ -95,7 +95,7 @@ const ProfilePage = () => {
       <main 
         className="mx-auto max-w-md px-4 py-3 space-y-5"
         style={{ 
-          paddingTop: `calc(4.9rem + env(safe-area-inset-top, 0px))`
+          paddingTop: `calc(4.9rem + env(safe-area-inset-top, 0px) - 10px)`
         }}
       >
         {/* Profile Card */}

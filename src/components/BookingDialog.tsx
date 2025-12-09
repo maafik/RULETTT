@@ -227,7 +227,7 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
         className="!max-w-full !w-screen !rounded-none !border-0 !p-0 !m-0 !translate-x-0 !translate-y-0 !left-0 !top-0 !right-0 !bottom-0 overflow-y-auto [&>button]:hidden"
         style={{ maxWidth: "100vw", width: "100vw", margin: 0, borderRadius: 0 }}
       >
-        <div className="min-h-full flex flex-col" style={{ padding: "20px 2rem" }}>
+        <div className="min-h-full flex flex-col" style={{ padding: "30px 2rem" }}>
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-foreground">
               {isEdit ? "Изменить заказ" : "Бронирование выступления"}
@@ -256,7 +256,7 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
             </div>
           )}
 
-          <div className="mt-6 space-y-4 flex-1">
+          <div className="mt-6 space-y-4">
             {/* Дата */}
             <div className="space-y-2">
               <Label htmlFor="date">Дата мероприятия *</Label>
