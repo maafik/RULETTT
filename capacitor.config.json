@@ -4,7 +4,14 @@
   "webDir": "docs",
   "server": {
     "androidScheme": "https",
-    "iosScheme": "https"
+    "iosScheme": "https",
+    "allowNavigation": [
+      "irinasketch.online",
+      "yookassa.ru",
+      "*.yookassa.ru",
+      "yoomoney.ru",
+      "*.yoomoney.ru"
+    ]
   },
   "plugins": {
     "SplashScreen": {
