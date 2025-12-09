@@ -100,8 +100,11 @@ All colors MUST be HSL.
   /* Safe area support for different screen sizes and Android devices */
   /* Поддержка safe-area для всех устройств (iOS, Android, Samsung, Xiaomi, Pixel, Huawei) */
   html {
-    /* Используем env() для автоматической поддержки safe-area на всех устройствах */
-    padding-top: env(safe-area-inset-top, 0px);
+    /* Используем env() для автоматической поддержки safe-area на всех устройствах.
+       После возврата из внешних экранов (например, YooKassa) на некоторых Android/Samsung
+       env(safe-area-inset-top) может временно становиться 0, поэтому добавляем минимальный
+       отступ сверху, чтобы шапка и поиск не прятались под статус-баром. */
+    padding-top: max(env(safe-area-inset-top, 0px), 20px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
