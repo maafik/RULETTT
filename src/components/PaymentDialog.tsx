@@ -121,7 +121,7 @@ const PaymentDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[24px]">
+      <DialogContent className="max-w-sm p-4 overflow-y-auto max-h-[90vh] rounded-[24px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Оплата заказа</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
