@@ -117,7 +117,7 @@ const AppContent = () => {
           }
         }
 
-        navigate("/orders", { replace: true });
+        navigate(`/order/${returnOrderId}`, { replace: true });
       } catch (e) {
         console.warn("⚠️ Не удалось обработать возврат после оплаты в App:", e);
       }
