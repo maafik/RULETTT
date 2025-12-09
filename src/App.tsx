@@ -205,7 +205,7 @@ const AppContent = () => {
   }
 
   return (
-    <div className="pt-[env(safe-area-inset-top)]">
+    <>
       <ScrollRestoration />
       <Routes>
         <Route
@@ -265,7 +265,7 @@ const AppContent = () => {
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </div>
+    </>
   );
 };
 
