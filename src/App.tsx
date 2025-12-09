@@ -250,7 +250,7 @@ const AppContent = () => {
         />
         <Route
           path="/payment/return"
-          element={isAuthenticated ? <PaymentReturnPage /> : <Navigate to="/login" replace />}
+          element={<PaymentReturnPage />}
         />
         <Route
           path="/order/:id/profile"
