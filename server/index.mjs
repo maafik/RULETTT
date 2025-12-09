@@ -305,6 +305,84 @@ app.get("/payment-status/:paymentId", async (req, res) => {
   }
 });
 
+// Эндпоинт для проверки статуса платежа по orderId через YooKassa (поиск по metadata.orderId)
+app.get("/payment-status-by-order/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: "orderId обязателен" });
+    }
+
+    const authHeader = Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64");
+
+    console.log("🔍 Проверка статуса платежа по orderId в YooKassa", { orderId });
+
+    const response = await fetch("https://api.yookassa.ru/v3/payments?limit=50", {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${authHeader}`,
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("❌ Ошибка ответа YooKassa при поиске платежа по orderId:", response.status, text);
+      return res.status(500).json({
+        success: false,
+        error: "Ошибка при поиске платежа по orderId в YooKassa",
+        providerStatus: response.status,
+        providerResponse: text,
+      });
+    }
+
+    const data = await response.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    const candidates = items.filter((item) => {
+      try {
+        return item.metadata && String(item.metadata.orderId) === String(orderId);
+      } catch {
+        return false;
+      }
+    });
+
+    if (!candidates.length) {
+      console.warn("ℹ️ Платёж с таким orderId не найден в последних платежах", { orderId });
+      return res.json({
+        success: false,
+        error: "Платёж для этого заказа не найден.",
+      });
+    }
+
+    const payment = candidates
+      .slice()
+      .sort((a, b) => {
+        const aDate = new Date(a.created_at || a.createdAt || 0).getTime();
+        const bDate = new Date(b.created_at || b.createdAt || 0).getTime();
+        return bDate - aDate;
+      })[0];
+
+    console.log("✅ Найден платёж по orderId", {
+      id: payment.id,
+      status: payment.status,
+      orderId,
+    });
+
+    return res.json({
+      success: true,
+      status: payment.status,
+      paymentId: payment.id,
+    });
+  } catch (error) {
+    console.error("❌ Ошибка при проверке статуса платежа по orderId (server):", error);
+    return res.status(500).json({
+      success: false,
+      error: error && error.message ? error.message : "Внутренняя ошибка сервера",
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Payment server listening on http://localhost:${PORT}`);
 });
