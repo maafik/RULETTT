@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { handlePaymentReturn } from "@/lib/payment";
 import { useToast } from "@/hooks/use-toast";
 import { updateOrder } from "@/lib/orders";
@@ -12,7 +12,6 @@ function useQuery() {
 
 const PaymentReturnPage = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const query = useQuery();
 
@@ -34,7 +33,6 @@ const PaymentReturnPage = () => {
         variant: "destructive",
         duration: 3000,
       });
-      navigate("/orders", { replace: true });
       return;
     }
 
@@ -58,7 +56,6 @@ const PaymentReturnPage = () => {
             duration: 3000,
           });
           await closeInAppBrowserIfNative();
-          navigate(`/order/${orderId}`, { replace: true });
         } else {
           toast({
             title: "Ошибка оплаты",
@@ -67,7 +64,6 @@ const PaymentReturnPage = () => {
             duration: 3000,
           });
           await closeInAppBrowserIfNative();
-          navigate(`/order/${orderId}`, { replace: true });
         }
       } catch (error) {
         console.error("Ошибка при обработке возврата оплаты:", error);
@@ -78,7 +74,6 @@ const PaymentReturnPage = () => {
           duration: 3000,
         });
         await closeInAppBrowserIfNative();
-        navigate(`/order/${orderId}`, { replace: true });
       }
     })();
   }, [location.search]);

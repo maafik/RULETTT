@@ -1,7 +1,7 @@
 {
   "appId": "com.musicbooking.app",
   "appName": "MusicBooking",
-  "webDir": "dist",
+  "webDir": "docs",
   "server": {
     "androidScheme": "https",
     "iosScheme": "https"

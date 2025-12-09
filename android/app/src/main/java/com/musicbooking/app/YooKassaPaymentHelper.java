@@ -1,19 +1,7 @@
 package com.musicbooking.app;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.util.Log;
-
-import java.math.BigDecimal;
-import java.util.Currency;
-import java.util.HashSet;
-import java.util.Set;
-
-import ru.yoomoney.sdk.kassa.payments.Amount;
-import ru.yoomoney.sdk.kassa.payments.Checkout;
-import ru.yoomoney.sdk.kassa.payments.PaymentMethodType;
-import ru.yoomoney.sdk.kassa.payments.PaymentParameters;
-import ru.yoomoney.sdk.kassa.payments.SavePaymentMethod;
 
 /**
  * Java-хелпер для запуска нативной формы YooKassa SDK.
@@ -37,36 +25,9 @@ public class YooKassaPaymentHelper {
             return;
         }
 
-        try {
-            BigDecimal value = new BigDecimal(amount.replace(",", "."));
-            Amount paymentAmount = new Amount(value, Currency.getInstance("RUB"));
-
-            String title = (description != null && !description.isEmpty())
-                    ? description
-                    : "Оплата заказа";
-            String subtitle = "Оплата банковской картой";
-
-            Set<PaymentMethodType> paymentMethodTypes = new HashSet<>();
-            paymentMethodTypes.add(PaymentMethodType.BANK_CARD);
-
-            PaymentParameters paymentParameters = new PaymentParameters(
-                    paymentAmount,
-                    title,
-                    subtitle,
-                    TEST_SDK_KEY,
-                    SHOP_ID,
-                    SavePaymentMethod.OFF,
-                    paymentMethodTypes
-            );
-
-            Intent intent = Checkout.createTokenizeIntent(
-                    activity,
-                    paymentParameters
-            );
-
-            activity.startActivityForResult(intent, TOKENIZE_REQUEST_CODE);
-        } catch (Exception e) {
-            Log.e(TAG, "Error starting YooKassa payment", e);
-        }
+        // Нативный SDK YooKassa сейчас не используется.
+        // Вся оплата проходит через веб-флоу (Redirect + return_url).
+        // Этот метод оставлен как заглушка, чтобы не ломать возможные вызовы.
+        Log.w(TAG, "YooKassaPaymentHelper.startPayment called, but native SDK is not integrated. Using web-based payments instead.");
     }
 }
