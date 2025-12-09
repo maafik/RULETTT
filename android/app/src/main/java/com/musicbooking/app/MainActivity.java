@@ -15,19 +15,33 @@ public class MainActivity extends BridgeActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         
         // Настраиваем внешний вид системных панелей
-        WindowInsetsControllerCompat windowInsetsController = 
+        WindowInsetsControllerCompat windowInsetsController =
             WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
-        
-        // Делаем статус-бар светлым (темный текст на светлом фоне)
-        // Это обеспечивает хорошую читаемость на светлом фоне приложения
-        windowInsetsController.setAppearanceLightStatusBars(true);
-        
-        // Делаем навигационную панель светлой (темный текст на светлом фоне)
-        // Это обеспечивает хорошую читаемость на светлом фоне приложения
-        windowInsetsController.setAppearanceLightNavigationBars(true);
+        if (windowInsetsController != null) {
+            // Делаем статус-бар светлым (темный текст на светлом фоне)
+            // Это обеспечивает хорошую читаемость на светлом фоне приложения
+            windowInsetsController.setAppearanceLightStatusBars(true);
+            
+            // Делаем навигационную панель светлой (темный текст на светлом фоне)
+            // Это обеспечивает хорошую читаемость на светлом фоне приложения
+            windowInsetsController.setAppearanceLightNavigationBars(true);
+        }
         
         // WebView автоматически будет использовать CSS env(safe-area-inset-*) переменные
         // для правильного отображения контента на всех устройствах
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        WindowInsetsControllerCompat windowInsetsController =
+            WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        if (windowInsetsController != null) {
+            windowInsetsController.setAppearanceLightStatusBars(true);
+            windowInsetsController.setAppearanceLightNavigationBars(true);
+        }
     }
 }
 
