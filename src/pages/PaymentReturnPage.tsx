@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { handlePaymentReturnByOrderId, type PaymentResult } from "@/lib/payment";
+import { handlePaymentReturn, type PaymentResult } from "@/lib/payment";
 import { updateOrder } from "@/lib/orders";
 import { updateOrderStatus } from "@/lib/firebase-db";
 import { closeInAppBrowserIfNative } from "@/lib/payment-browser";
@@ -22,8 +22,22 @@ const PaymentReturnPage = () => {
     const run = async () => {
       const orderId = query.get("orderId") || "";
 
+      let paymentId =
+        query.get("paymentId") ||
+        query.get("payment_id") ||
+        (typeof window !== "undefined"
+          ? window.localStorage.getItem(`yookassa_payment_${orderId}`) || ""
+          : "");
+
       if (!orderId) {
         const msg = "Параметр orderId отсутствует в ссылке возврата.";
+        setStatus("error");
+        setMessage(msg);
+        return;
+      }
+
+      if (!paymentId) {
+        const msg = "Не удалось определить платеж. Попробуйте ещё раз или свяжитесь с поддержкой.";
         setStatus("error");
         setMessage(msg);
         return;
@@ -36,7 +50,7 @@ const PaymentReturnPage = () => {
       let finalResult: PaymentResult | null = null;
 
       while (!isCancelled && Date.now() - start < 30000) {
-        const result = await handlePaymentReturnByOrderId(orderId);
+        const result = await handlePaymentReturn(paymentId || "", orderId);
 
         if (result.success) {
           finalResult = result;
