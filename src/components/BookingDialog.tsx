@@ -223,8 +223,11 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-full !w-screen !h-screen !max-h-screen !rounded-none !border-0 !p-0 !m-0 !translate-x-0 !translate-y-0 !left-0 !top-0 !right-0 !bottom-0 overflow-y-auto [&>button]:hidden" style={{ maxWidth: '100vw', width: '100vw', height: '100vh', maxHeight: '100vh', margin: 0, borderRadius: 0 }}>
-        <div className="min-h-full flex flex-col" style={{ padding: '2rem' }}>
+      <DialogContent
+        className="!max-w-full !w-screen !rounded-none !border-0 !p-0 !m-0 !translate-x-0 !translate-y-0 !left-0 !top-0 !right-0 !bottom-0 overflow-y-auto [&>button]:hidden"
+        style={{ maxWidth: "100vw", width: "100vw", margin: 0, borderRadius: 0 }}
+      >
+        <div className="min-h-full flex flex-col" style={{ padding: "20px 2rem" }}>
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-foreground">
               {isEdit ? "Изменить заказ" : "Бронирование выступления"}
@@ -293,29 +296,30 @@ const BookingDialog = ({ open, onOpenChange, musician, onConfirm, initialData, i
               </Select>
             </div>
 
-            {/* Время начала */}
-            <div className="space-y-2">
-              <Label htmlFor="time">Время начала *</Label>
-              <Input
-                id="time"
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                placeholder="Выберите время начала"
-              />
-            </div>
+            {/* Время начала и окончания в одну строку */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="time">Время начала *</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  placeholder="Выберите время начала"
+                />
+              </div>
 
-            {/* Время окончания */}
-            <div className="space-y-2">
-              <Label htmlFor="endTime">Время окончания *</Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                placeholder="Выберите время окончания"
-                min={time || undefined}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="endTime">Время окончания *</Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  placeholder="Выберите время окончания"
+                  min={time || undefined}
+                />
+              </div>
             </div>
 
             {/* Адрес */}
