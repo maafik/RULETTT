@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { createYooKassaPayment } from "@/lib/payment";
+import { openPaymentUrl } from "@/lib/payment-browser";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -104,8 +105,7 @@ const PaymentDialog = ({
           } catch (e) {
             console.warn("⚠️ Не удалось сохранить orderId для возврата после оплаты:", e);
           }
-          // Перенаправляем на страницу оплаты YooKassa в том же WebView/браузере
-          window.location.href = paymentResult.confirmationUrl;
+          await openPaymentUrl(paymentResult.confirmationUrl);
         }
       } else {
         console.error("Ошибка при создании платежа YooKassa:", paymentResult.error);
