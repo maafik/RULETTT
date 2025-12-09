@@ -139,12 +139,8 @@ const PaymentReturnPage = () => {
 
     if (typeof window !== "undefined") {
       try {
-        window.location.href = "myapp://payment-result";
-      } catch (e) {
-        try {
-          window.close();
-        } catch {}
-      }
+        window.close();
+      } catch {}
     }
   };
 
@@ -157,21 +153,19 @@ const PaymentReturnPage = () => {
       : "Обработка результата оплаты";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-foreground px-4">
-      <div className="w-full max-w-md space-y-4 text-center">
-        <h1 className="text-lg font-semibold">{title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {isChecking
-            ? "Пожалуйста, подождите, мы проверяем статус вашего платежа..."
-            : message ||
-              (status === "success"
-                ? "Оплата успешно подтверждена."
-                : "Оплата не подтверждена.")}
-        </p>
-        <Button type="button" onClick={handleReturnClick} className="mt-4 w-full">
-          Вернуться в приложение
-        </Button>
-      </div>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground px-4 text-center">
+      <h1 className="text-lg font-semibold">{title}</h1>
+      <p className="text-sm text-muted-foreground">
+        {isChecking
+          ? "Пожалуйста, подождите, мы проверяем статус вашего платежа..."
+          : message ||
+            (status === "success"
+              ? "Оплата успешно подтверждена."
+              : "Оплата не подтверждена.")}
+      </p>
+      <Button type="button" onClick={handleReturnClick}>
+        Вернуться в приложение
+      </Button>
     </div>
   );
 };
