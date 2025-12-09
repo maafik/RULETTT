@@ -117,10 +117,12 @@ const AppContent = () => {
           }
         }
 
-        navigate(`/order/${returnOrderId}`, { replace: true });
+        navigate("/orders", { replace: true });
       } catch (e) {
         console.warn("⚠️ Не удалось обработать возврат после оплаты в App:", e);
       }
+
+
     })();
   }, [isAuthReady, isAuthenticated, navigate]);
 
