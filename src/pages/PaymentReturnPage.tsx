@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { handlePaymentReturnByOrderId, type PaymentResult } from "@/lib/payment";
-import { useToast } from "@/hooks/use-toast";
 import { updateOrder } from "@/lib/orders";
 import { updateOrderStatus } from "@/lib/firebase-db";
 import { closeInAppBrowserIfNative } from "@/lib/payment-browser";
@@ -13,7 +12,6 @@ function useQuery() {
 
 const PaymentReturnPage = () => {
   const location = useLocation();
-  const { toast } = useToast();
   const query = useQuery();
   const [status, setStatus] = useState<"checking" | "success" | "error">("checking");
   const [message, setMessage] = useState<string>("");
@@ -39,14 +37,6 @@ const PaymentReturnPage = () => {
 
       while (!isCancelled && Date.now() - start < 30000) {
         const result = await handlePaymentReturnByOrderId(orderId);
-
-        if (!isCancelled) {
-          toast({
-            title: "Проверяем статус...",
-            description: `Статус платежа: ${result.status || 'в обработке'}`,
-            duration: 2000,
-          });
-        }
 
         if (result.success) {
           finalResult = result;
@@ -97,7 +87,7 @@ const PaymentReturnPage = () => {
     return () => {
       isCancelled = true;
     };
-  }, [location.search, query, toast]);
+  }, [location.search, query]);
 
   const handleReturnClick = async () => {
     await closeInAppBrowserIfNative();
