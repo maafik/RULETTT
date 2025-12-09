@@ -21,6 +21,7 @@ export interface PaymentResult {
   paymentId?: string;
   confirmationUrl?: string;
   error?: string;
+  status?: string;
 }
 
 /**
@@ -223,5 +224,35 @@ export const handlePaymentReturn = async (
     };
   }
 };
+
+export async function handlePaymentReturnByOrderId(
+  orderId: string
+): Promise<PaymentResult> {
+  if (!orderId) {
+    return {
+      success: false,
+      error: "Отсутствует orderId для проверки статуса",
+    };
+  }
+
+  try {
+    const baseUrl = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:4000";
+    const url = `${baseUrl.replace(/\/$/, "")}/payment-status-by-order/${orderId}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (response.ok && data.success && data.status === 'succeeded') {
+      return { success: true, status: data.status, paymentId: data.paymentId };
+    } else {
+      return { success: false, error: data.error || "Платёж не найден или ещё не прошёл", status: data.status };
+    }
+  } catch (error) {
+    console.error("Ошибка при проверке статуса платежа по orderId (client):", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Сетевая ошибка или сервер недоступен",
+    };
+  }
+}
 
 
