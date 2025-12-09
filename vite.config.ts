@@ -16,7 +16,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    outDir: "dist",
+    // Собираем продакшн-бандл в папку docs для GitHub Pages
+    outDir: "docs",
     emptyOutDir: true,
     // Увеличиваем размер предупреждений для больших бандлов
     chunkSizeWarningLimit: 1000,
