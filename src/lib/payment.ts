@@ -224,4 +224,11 @@ export const handlePaymentReturn = async (
   }
 };
 
+export function warmupPaymentServer(): void {
+  try {
+    const baseUrl = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:4000";
+    const url = `${baseUrl.replace(/\/$/, "")}/health`;
 
+    void fetch(url, { method: "GET" }).catch(() => {});
+  } catch {}
+}

@@ -3,10 +3,12 @@ import App from "./App.tsx";
 import "./index.css";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
+import { warmupPaymentServer } from "./lib/payment";
 
 console.log("🚀 Начало инициализации приложения");
 console.log("📱 Платформа:", Capacitor.isNativePlatform() ? Capacitor.getPlatform() : "Web");
 console.log("🌐 User Agent:", typeof navigator !== "undefined" ? navigator.userAgent : "N/A");
+warmupPaymentServer();
 
 // Инициализация Capacitor
 if (Capacitor.isNativePlatform()) {
