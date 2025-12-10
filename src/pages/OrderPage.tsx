@@ -613,8 +613,8 @@ const OrderPage = () => {
 
       {/* Main Content */}
       <main
-        className="mx-auto max-w-md px-4 pb-4 pt-28 space-y-4"
-        style={{ paddingTop: "calc(112px + env(safe-area-inset-top, 0px))" }}
+        className="mx-auto max-w-md px-4 pb-4 space-y-4"
+        style={{ paddingTop: "calc(80px + env(safe-area-inset-top, 0px))" }}
       >
         {isLoading ? (
           <div className="rounded-[20px] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
