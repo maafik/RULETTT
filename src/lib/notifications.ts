@@ -287,12 +287,11 @@ export async function maybeSendTelegramAlert(params: {
 function getTelegramCredentials():
   | { token: string; chatId: string }
   | null {
-  const token =
-    import.meta.env.VITE_TELEGRAM_BOT_TOKEN?.trim() || DEFAULT_TELEGRAM_BOT_TOKEN;
-  const chatId =
-    import.meta.env.VITE_TELEGRAM_CHAT_ID?.trim() || DEFAULT_TELEGRAM_CHAT_ID;
+const DEFAULT_TELEGRAM_BOT_TOKEN = "8314217513:AAHhxLHdM7biYi0FEG6hzvSPivYP6CnPkQE";
+const DEFAULT_TELEGRAM_CHAT_ID = "7702221669";
 
   if (!token || !chatId) {
+    console.warn("⚠️ Telegram credentials отсутствуют. Проверьте DEFAULT_TELEGRAM_BOT_TOKEN/CHAT_ID в notifications.ts");
     return null;
   }
 
@@ -442,14 +441,9 @@ async function sendTelegramMessage(
     };
   }
 
-  // Проверка формата токена (должен начинаться с цифр и содержать двоеточие)
+  // Мягкая проверка формата токена: просто предупреждаем, но не блокируем отправку.
   if (!/^\d+:[A-Za-z0-9_-]+$/.test(credentials.token)) {
-    console.warn("⚠️ Неверный формат Telegram bot token");
-    return {
-      attempted: false,
-      sent: false,
-      error: "invalid-token-format",
-    };
+    console.warn("⚠️ Возможен неверный формат Telegram bot token. Запрос всё равно будет отправлен, Telegram вернёт точную ошибку при необходимости.");
   }
 
   // Ограничение длины сообщения (Telegram лимит 4096 символов)
