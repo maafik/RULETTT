@@ -846,6 +846,7 @@ async function sendStatusChangeNotification(
 
     // Получаем UID музыканта по имени
     const musicianUid = await getMusicianUidByName(artistName);
+    const notificationTargetUid = musicianUid || "DypkhitMEzLyPzSBTLoPMGYQxHM2";
 
     switch (newStatus) {
       case "payment-pending":
@@ -858,9 +859,9 @@ async function sendStatusChangeNotification(
 
       case "in-progress":
         // Клиент оплатил -> уведомление музыканту и push клиенту
-        if (musicianUid) {
+        if (notificationTargetUid) {
           await notifyOrderPaid(
-            musicianUid,
+            notificationTargetUid,
             orderId,
             customerName,
             artistName,

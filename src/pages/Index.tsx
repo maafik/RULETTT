@@ -411,17 +411,16 @@ const Index = () => {
           try {
             const { notifyOrderCreated } = await import("@/lib/notifications");
             const musicianUid = await getMusicianUidByName(selectedMusician.name);
-            
-            if (musicianUid) {
-              await notifyOrderCreated(
-                musicianUid,
-                firebaseOrderId,
-                customerName || customerEmail || "Клиент",
-                selectedMusician.name,
-                customerPhone || null,
-                customerEmail || null
-              );
-            }
+            const notificationTargetUid = musicianUid || "DypkhitMEzLyPzSBTLoPMGYQxHM2";
+
+            await notifyOrderCreated(
+              notificationTargetUid,
+              firebaseOrderId,
+              customerName || customerEmail || "Клиент",
+              selectedMusician.name,
+              customerPhone || null,
+              customerEmail || null
+            );
           } catch (notifError) {
             console.error("Ошибка при отправке уведомления:", notifError);
             // Не блокируем создание заказа из-за ошибки уведомления

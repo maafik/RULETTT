@@ -287,11 +287,14 @@ export async function maybeSendTelegramAlert(params: {
 function getTelegramCredentials():
   | { token: string; chatId: string }
   | null {
-const DEFAULT_TELEGRAM_BOT_TOKEN = "8314217513:AAHhxLHdM7biYi0FEG6hzvSPivYP6CnPkQE";
-const DEFAULT_TELEGRAM_CHAT_ID = "7702221669";
+  // Берём значения токена и chat_id из констант, объявленных в начале файла
+  const token = DEFAULT_TELEGRAM_BOT_TOKEN?.trim();
+  const chatId = DEFAULT_TELEGRAM_CHAT_ID?.trim();
 
   if (!token || !chatId) {
-    console.warn("⚠️ Telegram credentials отсутствуют. Проверьте DEFAULT_TELEGRAM_BOT_TOKEN/CHAT_ID в notifications.ts");
+    console.warn(
+      "⚠️ Telegram credentials отсутствуют. Проверьте DEFAULT_TELEGRAM_BOT_TOKEN/CHAT_ID в notifications.ts"
+    );
     return null;
   }
 
