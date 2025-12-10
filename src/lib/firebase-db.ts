@@ -832,9 +832,20 @@ async function sendStatusChangeNotification(
         break;
 
       case "in-progress":
-        // Клиент оплатил -> уведомление музыканту
+        // Клиент оплатил -> уведомление музыканту и push клиенту
         if (musicianUid) {
-          await notifyOrderPaid(musicianUid, orderId, customerName, artistName, customerPhone, customerEmail);
+          await notifyOrderPaid(
+            musicianUid,
+            orderId,
+            customerName,
+            artistName,
+            customerPhone,
+            customerEmail
+          );
+        }
+
+        if (customerUid) {
+          await sendOrderPaidPush(orderId, customerUid);
         }
         break;
 
@@ -917,6 +928,67 @@ async function sendOrderConfirmedPush(
     }
   } catch (error) {
     console.error("❌ Ошибка при отправке push-уведомления клиенту (Admin SDK):", error);
+  }
+}
+
+/**
+ * Отправить push-уведомление клиенту после успешной оплаты через Render backend.
+ */
+async function sendOrderPaidPush(
+  orderId: string,
+  customerUid: string
+): Promise<void> {
+  try {
+    const title = "Оплата успешно обработана";
+    const body = "Статус заказа доступен во вкладке „Заказы“ в приложении.";
+
+    const baseUrl =
+      (import.meta as any).env.VITE_PAYMENT_API_URL ||
+      "http://localhost:4000";
+    const url = `${baseUrl.replace(/\/$/, "")}/send-order-push`;
+
+    console.log(
+      "📲 Отправка push-уведомления клиенту после оплаты через backend (Admin SDK):",
+      {
+        url,
+        orderId,
+        customerUid,
+      }
+    );
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerUid,
+        title,
+        body,
+        data: {
+          orderId,
+          type: "order-paid",
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(
+        "❌ Ошибка ответа backend при отправке push-уведомления клиенту после оплаты (Admin SDK):",
+        response.status,
+        text
+      );
+    } else {
+      console.log(
+        "✅ Push-уведомление клиенту после оплаты отправлено через backend (Admin SDK)"
+      );
+    }
+  } catch (error) {
+    console.error(
+      "❌ Ошибка при отправке push-уведомления клиенту после оплаты (Admin SDK):",
+      error
+    );
   }
 }
 

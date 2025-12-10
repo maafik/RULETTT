@@ -84,7 +84,7 @@ const PaymentReturnPage = () => {
 
         updateOrder(orderId, { status: "in-progress" as const });
 
-        const msg = `Оплата для заказа №${orderId} подтверждена. Статус: выступление в процессе.`;
+        const msg = "Статус вашего заказа доступен во вкладке „Заказы“ в приложении.";
         setStatus("success");
         setMessage(msg);
       } else {
@@ -112,12 +112,7 @@ const PaymentReturnPage = () => {
   };
 
   const isChecking = status === "checking";
-  const title =
-    status === "success"
-      ? "Оплата прошла успешно"
-      : status === "error"
-      ? "Платёж не подтверждён"
-      : "Обработка результата оплаты";
+  const title = "Информация о заказе";
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground px-4 text-center">
@@ -125,10 +120,7 @@ const PaymentReturnPage = () => {
       <p className="text-sm text-muted-foreground">
         {isChecking
           ? "Пожалуйста, подождите, мы проверяем статус вашего платежа..."
-          : message ||
-            (status === "success"
-              ? "Оплата успешно подтверждена."
-              : "Оплата не подтверждена.")}
+          : "Статус вашего платежа и заказа можно проверить во вкладке „Заказы“ в приложении."}
       </p>
       <Button type="button" onClick={handleReturnClick}>
         Вернуться в приложение
