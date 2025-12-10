@@ -22,6 +22,7 @@ import ScrollRestoration from "./components/ScrollRestoration";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, initializeNotificationsForUser } from "@/lib/firebase";
 import { initializeCapacitorPushForCurrentUser } from "@/lib/capacitor-push";
+import { initializeNotifications } from "@/lib/notifications";
 import { handlePaymentReturn } from "@/lib/payment";
 import { updateOrder } from "@/lib/orders";
 import { updateOrderStatus } from "@/lib/firebase-db";
@@ -76,6 +77,7 @@ const AppContent = () => {
       if (user && currentUid) {
         initializeNotificationsForUser(currentUid);
         initializeCapacitorPushForCurrentUser();
+        void initializeNotifications();
       }
     });
 

@@ -1,5 +1,7 @@
 import { collection, addDoc, Timestamp } from "firebase/firestore";
-import { db } from "./firebase";
+import { db, getMessagingInstance } from "./firebase";
+import { onMessage, type MessagePayload } from "firebase/messaging";
+import { toast as showToast } from "@/hooks/use-toast";
 
 const DEFAULT_TELEGRAM_BOT_TOKEN = "8314217513:AAHhxLHdM7biYi0FEG6hzvSPivYP6CnPkQE";
 const DEFAULT_TELEGRAM_CHAT_ID = "7702221669";
@@ -625,13 +627,59 @@ export async function sendRegistrationAlert(
 }
 
 /**
- * Слушатели уведомлений отключены. Функции оставлены для совместимости.
+ * Слушатель foreground push-уведомлений FCM для PWA.
+ * Работает, когда вкладка/приложение активно и показывает toast-баннеры в UI.
  */
+let foregroundListenerInitialized = false;
+
 export async function setupNotificationListener(): Promise<void> {
-  console.log("🔕 Слушатель push-уведомлений отключен.");
+  if (typeof window === "undefined") return;
+
+  if (foregroundListenerInitialized) {
+    return;
+  }
+
+  try {
+    const messaging = await getMessagingInstance();
+    if (!messaging) {
+      console.warn(
+        "⚠️ Firebase Messaging недоступен, foreground-слушатель уведомлений не будет установлен"
+      );
+      foregroundListenerInitialized = true;
+      return;
+    }
+
+    onMessage(messaging, (payload: MessagePayload) => {
+      console.log("📩 Получено foreground push-уведомление (PWA):", payload);
+
+      const notification = payload.notification;
+      const data = payload.data || {};
+
+      const title =
+        notification?.title ||
+        (typeof data.title === "string" ? data.title : "Новое уведомление");
+
+      const body =
+        notification?.body || (typeof data.body === "string" ? data.body : "");
+
+      showToast({
+        title,
+        description: body,
+      });
+    });
+
+    foregroundListenerInitialized = true;
+    console.log("✅ Foreground-слушатель push-уведомлений FCM для PWA включен");
+  } catch (error) {
+    console.error("❌ Ошибка при настройке foreground-слушателя FCM:", error);
+  }
 }
 
+/**
+ * Инициализация системы уведомлений на клиенте (PWA).
+ * Сейчас просто включает foreground-слушатель.
+ */
 export async function initializeNotifications(): Promise<void> {
-  console.log("🔕 Система push-уведомлений отключена.");
+  await setupNotificationListener();
 }
 

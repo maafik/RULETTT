@@ -2,6 +2,7 @@ import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { auth, db } from "./firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { toast as showToast } from "@/hooks/use-toast";
 
 export async function initializeCapacitorPushForCurrentUser(): Promise<void> {
   try {
@@ -45,9 +46,23 @@ export async function initializeCapacitorPushForCurrentUser(): Promise<void> {
       console.error("❌ Ошибка регистрации push-уведомлений (Capacitor):", error);
     });
 
-    // Опционально: слушатель полученных уведомлений
+    // Foreground-слушатель полученных push-уведомлений на нативном Android (Capacitor)
     PushNotifications.addListener("pushNotificationReceived", (notification) => {
       console.log("📩 Push получен (Capacitor):", notification);
+
+      const data: any = notification.data || {};
+
+      const title =
+        notification.title ||
+        (typeof data.title === "string" ? data.title : "Новое уведомление");
+
+      const body =
+        notification.body || (typeof data.body === "string" ? data.body : "");
+
+      showToast({
+        title,
+        description: body,
+      });
     });
   } catch (error) {
     console.error("❌ Ошибка при инициализации Capacitor push:", error);
