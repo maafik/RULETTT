@@ -819,6 +819,31 @@ async function sendStatusChangeNotification(
     const customerPhone: string | null = orderData.customerPhone || null;
     const customerEmail: string | null = orderData.customerEmail || null;
 
+    // Дополнительные данные для расширенного Telegram-уведомления об оплате
+    let enrichedCustomerPhone: string | null = customerPhone;
+    let allowWhatsAppTelegramNotifications = false;
+    const amount: string | null =
+      typeof orderData.price === "string" ? orderData.price : null;
+
+    if (customerUid) {
+      try {
+        const customerProfile = await getUserProfile(customerUid);
+        if (customerProfile) {
+          allowWhatsAppTelegramNotifications =
+            customerProfile.allowWhatsAppTelegramNotifications || false;
+
+          if (!enrichedCustomerPhone && customerProfile.phone) {
+            enrichedCustomerPhone = customerProfile.phone;
+          }
+        }
+      } catch (error) {
+        console.warn(
+          "⚠️ Не удалось получить профиль клиента для Telegram-уведомления об оплате:",
+          error
+        );
+      }
+    }
+
     // Получаем UID музыканта по имени
     const musicianUid = await getMusicianUidByName(artistName);
 
@@ -839,8 +864,10 @@ async function sendStatusChangeNotification(
             orderId,
             customerName,
             artistName,
-            customerPhone,
-            customerEmail
+            enrichedCustomerPhone,
+            customerEmail,
+            amount,
+            allowWhatsAppTelegramNotifications
           );
         }
 

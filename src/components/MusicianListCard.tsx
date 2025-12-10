@@ -10,9 +10,10 @@ interface MusicianListCardProps {
   status: "available" | "busy" | "online" | "unavailable";
   image?: string;
   onClick?: () => void;
+  showStatus?: boolean;
 }
 
-const MusicianListCard = ({ name, style, price, rating, status, image, onClick }: MusicianListCardProps) => {
+const MusicianListCard = ({ name, style, price, rating, status, image, onClick, showStatus = true }: MusicianListCardProps) => {
   return (
     <button
       type="button"
@@ -34,7 +35,7 @@ const MusicianListCard = ({ name, style, price, rating, status, image, onClick }
         <div>
           <div className="mb-1 flex items-start justify-between gap-2">
             <h4 className="text-base font-bold text-foreground">{name}</h4>
-            <StatusBadge status={status} />
+            {showStatus && <StatusBadge status={status} />}
           </div>
           <p className="mb-1 text-sm text-muted-foreground">{style}</p>
         </div>

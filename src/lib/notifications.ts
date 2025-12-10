@@ -1,9 +1,7 @@
-import * as React from "react";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db, getMessagingInstance } from "./firebase";
 import { onMessage, type MessagePayload } from "firebase/messaging";
 import { toast as showToast } from "@/hooks/use-toast";
-import { ToastAction, type ToastActionElement } from "@/components/ui/toast";
 
 const DEFAULT_TELEGRAM_BOT_TOKEN = "8314217513:AAHhxLHdM7biYi0FEG6hzvSPivYP6CnPkQE";
 const DEFAULT_TELEGRAM_CHAT_ID = "7702221669";
@@ -139,7 +137,9 @@ export async function notifyOrderPaid(
   customerName: string,
   artistName: string,
   customerPhone?: string | null,
-  customerEmail?: string | null
+  customerEmail?: string | null,
+  amount?: string | null,
+  allowWhatsAppTelegramNotifications?: boolean
 ): Promise<boolean> {
   const saved = await sendOrderNotification(
     musicianUid,
@@ -155,6 +155,8 @@ export async function notifyOrderPaid(
     customerPhone: customerPhone ?? null,
     customerEmail: customerEmail ?? null,
     musicianName: artistName,
+    amount: amount ?? null,
+    allowWhatsAppTelegramNotifications,
   });
   logOrderTelegramResult("оплате заказа", telegram);
   return saved;
@@ -355,6 +357,8 @@ async function maybeSendOrderTelegramAlert(params: {
   customerPhone?: string | null;
   customerEmail?: string | null;
   musicianName?: string | null;
+  amount?: string | null;
+  allowWhatsAppTelegramNotifications?: boolean;
 }): Promise<TelegramNotificationResult> {
   const credentials = getTelegramCredentials();
   if (!credentials) {
@@ -372,6 +376,9 @@ async function maybeSendOrderTelegramAlert(params: {
     customerPhone: params.customerPhone ?? null,
     customerEmail: params.customerEmail ?? null,
     musicianName: params.musicianName ?? "Музыкант",
+    amount: params.amount ?? null,
+    allowWhatsAppTelegramNotifications:
+      params.allowWhatsAppTelegramNotifications ?? undefined,
   });
 
   return await sendTelegramMessage(message, credentials);
@@ -384,6 +391,8 @@ function buildOrderTelegramMessage(params: {
   customerPhone: string | null;
   customerEmail: string | null;
   musicianName: string;
+  amount?: string | null;
+  allowWhatsAppTelegramNotifications?: boolean;
 }): string {
   const header =
     params.type === "order-created"
@@ -403,6 +412,15 @@ function buildOrderTelegramMessage(params: {
 
   if (params.customerPhone) {
     lines.push(`<b>Телефон клиента:</b> ${escapeHtml(params.customerPhone)}`);
+  }
+
+  if (typeof params.allowWhatsAppTelegramNotifications === "boolean") {
+    const notificationsStatus = params.allowWhatsAppTelegramNotifications ? "Да" : "Нет";
+    lines.push(`<b>Уведомления WhatsApp/Telegram:</b> ${notificationsStatus}`);
+  }
+
+  if (params.type === "order-paid" && params.amount) {
+    lines.push(`<b>Сумма оплаты:</b> ${escapeHtml(params.amount)}`);
   }
 
   lines.push(`<b>Заказ:</b> ${escapeHtml(params.orderId)}`);
@@ -666,31 +684,23 @@ export async function setupNotificationListener(): Promise<void> {
 
       const orderId = typeof (data as any).orderId === "string" ? (data as any).orderId : undefined;
 
-      const action: ToastActionElement | undefined =
-        orderId && typeof window !== "undefined"
-          ? (React.createElement(
-              ToastAction,
-              {
-                altText: "Открыть заказ",
-                onClick: () => {
-                  try {
-                    window.location.href = `/order/${orderId}`;
-                  } catch (e) {
-                    console.error(
-                      "❌ Ошибка при переходе к заказу из toast (PWA):",
-                      e
-                    );
-                  }
-                },
-              },
-              "Открыть"
-            ) as unknown as ToastActionElement)
-          : undefined;
-
       showToast({
         title,
         description: body,
-        action,
+        // Клик по toast переводит на страницу заказа, если есть orderId
+        onClick:
+          orderId && typeof window !== "undefined"
+            ? () => {
+                try {
+                  window.location.href = `/order/${orderId}`;
+                } catch (e) {
+                  console.error(
+                    "❌ Ошибка при переходе к заказу из toast (PWA):",
+                    e
+                  );
+                }
+              }
+            : undefined,
       });
     });
 

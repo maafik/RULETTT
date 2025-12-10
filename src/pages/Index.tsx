@@ -753,6 +753,7 @@ const Index = () => {
                   price={musician.price}
                   rating={musician.rating}
                   status={musician.status}
+                  showStatus={false}
                   image={musician.image}
                   onClick={() => handleMusicianClick(musician)}
                 />
