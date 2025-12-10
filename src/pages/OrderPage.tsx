@@ -594,7 +594,10 @@ const OrderPage = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
+      <header
+        className="fixed top-0 left-0 right-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px))" }}
+      >
         <div className="mx-auto max-w-md px-4 py-4">
           <div className="flex items-center gap-3">
             <button
@@ -609,7 +612,10 @@ const OrderPage = () => {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-md px-4 py-4 space-y-4">
+      <main
+        className="mx-auto max-w-md px-4 pb-4 pt-28 space-y-4"
+        style={{ paddingTop: "calc(112px + env(safe-area-inset-top, 0px))" }}
+      >
         {isLoading ? (
           <div className="rounded-[20px] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             Загрузка заказа...

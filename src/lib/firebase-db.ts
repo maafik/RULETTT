@@ -28,7 +28,6 @@ export interface UserProfile {
   city?: string;
   phone?: string;
   allowWhatsAppTelegramNotifications?: boolean;
-  name?: string;
 }
 
 export interface MusicianProfile {
@@ -61,7 +60,6 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         city: data.city || "Москва",
         phone: data.phone || null,
         allowWhatsAppTelegramNotifications: data.allowWhatsAppTelegramNotifications || false,
-        name: data.name || undefined,
       } as UserProfile;
       
       if (profile.role === "musician" || profile.musicianName) {

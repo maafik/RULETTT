@@ -25,7 +25,6 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
-  const [fullName, setFullName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"login" | "register" | "reset">("login");
@@ -197,11 +196,6 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
   const handleContinueAfterNotification = async () => {
     setError("");
 
-    if (!fullName.trim()) {
-      setError("Введите имя");
-      return;
-    }
-
     // Обязательная валидация номера телефона
     if (!phone.trim()) {
       setError("Введите номер телефона");
@@ -235,7 +229,6 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
           city: "Москва",
           allowWhatsAppTelegramNotifications: allowNotifications,
           phone: normalizedPhone || undefined,
-          name: fullName.trim(),
         });
 
         console.log("✅ Профиль создан");
@@ -246,7 +239,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
           const sendWelcomeEmail = httpsCallable(functions, 'sendWelcomeEmail');
           await sendWelcomeEmail({
             email: userCredential.user.email,
-            userName: fullName.trim() || userCredential.user.displayName || email.split('@')[0],
+            userName: userCredential.user.displayName || email.split('@')[0],
           });
           console.log("✅ Приветственное письмо отправлено");
         } catch (emailError) {
@@ -263,7 +256,6 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         
         setIsSubmitting(false);
         setShowNotificationPermission(false);
-        setFullName("");
         onLogin?.();
         navigate("/");
       }
@@ -466,18 +458,6 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="full-name-input">Имя</Label>
-              <Input
-                id="full-name-input"
-                type="text"
-                placeholder="Ваше имя"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="phone-input">Номер телефона (обязательно)</Label>
               <Input
