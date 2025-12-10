@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import ChatPage from "./pages/ChatPage";
 import MusicianProfilePage from "./pages/MusicianProfilePage";
 import LoginPage from "./pages/LoginPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ScrollRestoration from "./components/ScrollRestoration";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, initializeNotificationsForUser } from "@/lib/firebase";
@@ -216,6 +217,7 @@ const AppContent = () => {
             isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
           }
         />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/"
           element={isAuthenticated ? <Index /> : <Navigate to="/login" replace />}

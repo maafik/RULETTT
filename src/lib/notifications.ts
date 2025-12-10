@@ -289,7 +289,7 @@ function getTelegramCredentials():
   | null {
   // Берём значения токена и chat_id из констант, объявленных в начале файла
   const token = DEFAULT_TELEGRAM_BOT_TOKEN?.trim();
-  const chatId = DEFAULT_TELEGRAM_CHAT_ID?.trim();
+  const chatId = DEFAULT_TELEGRAM_CHAT_ID?.trim();  
 
   if (!token || !chatId) {
     console.warn(
