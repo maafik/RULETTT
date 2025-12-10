@@ -1,7 +1,9 @@
+import * as React from "react";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db, getMessagingInstance } from "./firebase";
 import { onMessage, type MessagePayload } from "firebase/messaging";
 import { toast as showToast } from "@/hooks/use-toast";
+import { ToastAction, type ToastActionElement } from "@/components/ui/toast";
 
 const DEFAULT_TELEGRAM_BOT_TOKEN = "8314217513:AAHhxLHdM7biYi0FEG6hzvSPivYP6CnPkQE";
 const DEFAULT_TELEGRAM_CHAT_ID = "7702221669";
@@ -662,9 +664,33 @@ export async function setupNotificationListener(): Promise<void> {
       const body =
         notification?.body || (typeof data.body === "string" ? data.body : "");
 
+      const orderId = typeof (data as any).orderId === "string" ? (data as any).orderId : undefined;
+
+      const action: ToastActionElement | undefined =
+        orderId && typeof window !== "undefined"
+          ? (React.createElement(
+              ToastAction,
+              {
+                altText: "Открыть заказ",
+                onClick: () => {
+                  try {
+                    window.location.href = `/order/${orderId}`;
+                  } catch (e) {
+                    console.error(
+                      "❌ Ошибка при переходе к заказу из toast (PWA):",
+                      e
+                    );
+                  }
+                },
+              },
+              "Открыть"
+            ) as unknown as ToastActionElement)
+          : undefined;
+
       showToast({
         title,
         description: body,
+        action,
       });
     });
 

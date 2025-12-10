@@ -1,8 +1,10 @@
+import * as React from "react";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { auth, db } from "./firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { toast as showToast } from "@/hooks/use-toast";
+import { ToastAction, type ToastActionElement } from "@/components/ui/toast";
 
 export async function initializeCapacitorPushForCurrentUser(): Promise<void> {
   try {
@@ -59,9 +61,33 @@ export async function initializeCapacitorPushForCurrentUser(): Promise<void> {
       const body =
         notification.body || (typeof data.body === "string" ? data.body : "");
 
+      const orderId = typeof data.orderId === "string" ? data.orderId : undefined;
+
+      const action: ToastActionElement | undefined =
+        orderId && typeof window !== "undefined"
+          ? (React.createElement(
+              ToastAction,
+              {
+                altText: "Открыть заказ",
+                onClick: () => {
+                  try {
+                    window.location.href = `/order/${orderId}`;
+                  } catch (e) {
+                    console.error(
+                      "❌ Ошибка при переходе к заказу из toast (Capacitor):",
+                      e
+                    );
+                  }
+                },
+              },
+              "Открыть"
+            ) as unknown as ToastActionElement)
+          : undefined;
+
       showToast({
         title,
         description: body,
+        action,
       });
     });
   } catch (error) {
