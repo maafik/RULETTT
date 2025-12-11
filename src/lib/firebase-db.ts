@@ -13,6 +13,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import type { Order } from "@/data/orders";
 
 // Проверка инициализации Firestore
 if (!db) {
@@ -1021,6 +1022,71 @@ async function sendOrderPaidPush(
 }
 
 /**
+ * Отправить push-уведомление клиенту при новом сообщении от музыканта через Render backend (Admin SDK).
+ */
+async function sendChatMessagePushToClient(
+  orderId: string,
+  customerUid: string,
+  artistName: string,
+  messageText: string
+): Promise<void> {
+  try {
+    const title = `Новое сообщение от ${artistName}`;
+    const body = (messageText || "").toString().slice(0, 140);
+
+    const baseUrl =
+      (import.meta as any).env.VITE_PAYMENT_API_URL ||
+      "http://localhost:4000";
+    const url = `${baseUrl.replace(/\/$/, "")}/send-order-push`;
+
+    console.log(
+      "📲 Отправка push-уведомления клиенту о новом сообщении через backend (Admin SDK):",
+      {
+        url,
+        orderId,
+        customerUid,
+        artistName,
+      }
+    );
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerUid,
+        title,
+        body,
+        data: {
+          orderId,
+          type: "chat-message",
+          sender: "musician",
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(
+        "❌ Ошибка ответа backend при отправке push-уведомления о сообщении (Admin SDK):",
+        response.status,
+        text
+      );
+    } else {
+      console.log(
+        "✅ Push-уведомление клиенту о новом сообщении отправлено через backend (Admin SDK)"
+      );
+    }
+  } catch (error) {
+    console.error(
+      "❌ Ошибка при отправке push-уведомления клиенту о сообщении (Admin SDK):",
+      error
+    );
+  }
+}
+
+/**
  * Получить UID музыканта по имени
  */
 export async function getMusicianUidByName(musicianName: string): Promise<string | null> {
@@ -1252,6 +1318,11 @@ async function sendChatMessageNotification(
       }
     } else {
       console.warn("⚠️ Не удалось определить получателя уведомления для сохранения в Firestore");
+    }
+
+    // Отправляем push-уведомление клиенту, если сообщение от музыканта
+    if (message.sender === "musician" && customerUid) {
+      await sendChatMessagePushToClient(orderId, customerUid, artistName, message.text);
     }
   } catch (error) {
     console.error("❌ Ошибка при отправке уведомления о сообщении:", error);
