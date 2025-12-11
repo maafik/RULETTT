@@ -1,4 +1,4 @@
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp, query, where, orderBy, onSnapshot as onSnapshotFS } from "firebase/firestore";
 import { db, getMessagingInstance } from "./firebase";
 import { onMessage, type MessagePayload } from "firebase/messaging";
 import { toast as showToast } from "@/hooks/use-toast";
@@ -28,6 +28,39 @@ export type ChatNotificationResult = {
   savedToHistory: boolean;
   telegram: TelegramNotificationResult;
 };
+
+const DEDUPE_TTL_MS = 10000;
+const shownToastKeys = new Map<string, number>();
+
+function nowMs(): number {
+  return Date.now();
+}
+
+function shouldShowOnce(key: string): boolean {
+  const t = nowMs();
+  for (const [k, ts] of shownToastKeys) {
+    if (t - ts > DEDUPE_TTL_MS) shownToastKeys.delete(k);
+  }
+  const last = shownToastKeys.get(key);
+  if (last && t - last < DEDUPE_TTL_MS) return false;
+  shownToastKeys.set(key, t);
+  return true;
+}
+
+function getActiveChatOrderId(): string | null {
+  if (typeof window === "undefined") return null;
+  const p = window.location?.pathname || "";
+  if (!p.startsWith("/chat/")) return null;
+  const rest = p.slice("/chat/".length);
+  const id = rest.split("/")[0];
+  return id || null;
+}
+
+function isChatMessageLike(data: any): boolean {
+  const t = typeof data?.type === "string" ? data.type : undefined;
+  const s = typeof data?.status === "string" ? data.status : undefined;
+  return t === "chat-message" || s === "chat-message";
+}
 
 /**
  * Заглушка для устаревших вызовов FCM. Возвращает null, т.к. push SDK отключен.
@@ -680,6 +713,23 @@ export async function setupNotificationListener(): Promise<void> {
         notification?.body || (typeof data.body === "string" ? data.body : "");
 
       const orderId = typeof (data as any).orderId === "string" ? (data as any).orderId : undefined;
+      const nType = (data as any).type || (data as any).status || "";
+
+      // Route-aware фильтр: если это чат и мы уже в этом чате — не показываем общий toast
+      if (isChatMessageLike(data)) {
+        const activeChatId = getActiveChatOrderId();
+        if (activeChatId && orderId && activeChatId === orderId) {
+          console.log("🧭 Пропуск глобального toast: чат уже открыт");
+          return;
+        }
+      }
+
+      // Дедупликация между FCM и Firestore-подпиской
+      const key = `${String(nType)}|${String(orderId || "")}|${String(title)}|${String(body)}`;
+      if (!shouldShowOnce(key)) {
+        console.log("🧹 Дубликат уведомления (FCM), пропускаем toast");
+        return;
+      }
 
       showToast({
         title,
@@ -714,5 +764,135 @@ export async function setupNotificationListener(): Promise<void> {
  */
 export async function initializeNotifications(): Promise<void> {
   await setupNotificationListener();
+}
+
+let inAppSubscriptionUid: string | null = null;
+let inAppUnsubscribe: (() => void) | null = null;
+
+export async function initializeInAppNotificationsForUser(userUid: string): Promise<void> {
+  if (typeof window === "undefined" || !db || !userUid) return;
+
+  if (inAppSubscriptionUid === userUid && inAppUnsubscribe) {
+    return;
+  }
+
+  if (inAppUnsubscribe) {
+    try { inAppUnsubscribe(); } catch {}
+    inAppUnsubscribe = null;
+  }
+
+  const ref = collection(db, "notifications");
+  let lastSeen = Date.now();
+
+  try {
+    const q = query(ref, where("targetUserUid", "==", userUid), orderBy("createdAt", "asc"));
+    inAppUnsubscribe = onSnapshotFS(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type !== "added") return;
+        const data: any = change.doc.data();
+        const createdAtMs = data.createdAt?.toMillis?.() || data.createdAt || 0;
+        if (createdAtMs <= lastSeen) return;
+
+        if (typeof document !== "undefined" && document.visibilityState === "visible") {
+          // Route-aware фильтр для чатов: если уже на странице соответствующего чата — пропускаем общий toast
+          if (isChatMessageLike(data)) {
+            const activeChatId = getActiveChatOrderId();
+            const orderIdCheck = typeof data.orderId === "string" ? data.orderId : undefined;
+            if (activeChatId && orderIdCheck && activeChatId === orderIdCheck) {
+              lastSeen = createdAtMs;
+              return;
+            }
+          }
+
+          const title = typeof data.title === "string" ? data.title : "Новое уведомление";
+          const body = typeof data.body === "string" ? data.body : "";
+          const orderId = typeof data.orderId === "string" ? data.orderId : undefined;
+
+          // Дедупликация между Firestore-подпиской и FCM onMessage
+          const nType = (data as any).type || (data as any).status || "";
+          const key = `${String(nType)}|${String(orderId || "")}|${String(title)}|${String(body)}`;
+          if (!shouldShowOnce(key)) {
+            lastSeen = createdAtMs;
+            return;
+          }
+
+          showToast({
+            title,
+            description: body,
+            onClick:
+              orderId && typeof window !== "undefined"
+                ? () => {
+                    try {
+                      window.location.href = `/order/${orderId}`;
+                    } catch (e) {
+                      console.error("Ошибка перехода из локального уведомления:", e);
+                    }
+                  }
+                : undefined,
+          });
+        }
+
+        lastSeen = createdAtMs;
+      });
+    });
+  } catch (error: any) {
+    // Fallback без orderBy
+    try {
+      const q = query(ref, where("targetUserUid", "==", userUid));
+      inAppUnsubscribe = onSnapshotFS(q, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type !== "added") return;
+          const data: any = change.doc.data();
+          const createdAtMs = data.createdAt?.toMillis?.() || data.createdAt || 0;
+          if (createdAtMs <= lastSeen) return;
+
+          if (typeof document !== "undefined" && document.visibilityState === "visible") {
+            // Route-aware фильтр для чатов
+            if (isChatMessageLike(data)) {
+              const activeChatId = getActiveChatOrderId();
+              const orderIdCheck = typeof data.orderId === "string" ? data.orderId : undefined;
+              if (activeChatId && orderIdCheck && activeChatId === orderIdCheck) {
+                lastSeen = createdAtMs;
+                return;
+              }
+            }
+
+            const title = typeof data.title === "string" ? data.title : "Новое уведомление";
+            const body = typeof data.body === "string" ? data.body : "";
+            const orderId = typeof data.orderId === "string" ? data.orderId : undefined;
+
+            // Дедупликация между Firestore-подпиской и FCM onMessage
+            const nType = (data as any).type || (data as any).status || "";
+            const key = `${String(nType)}|${String(orderId || "")}|${String(title)}|${String(body)}`;
+            if (!shouldShowOnce(key)) {
+              lastSeen = createdAtMs;
+              return;
+            }
+
+            showToast({
+              title,
+              description: body,
+              onClick:
+                orderId && typeof window !== "undefined"
+                  ? () => {
+                      try {
+                        window.location.href = `/order/${orderId}`;
+                      } catch (e) {
+                        console.error("Ошибка перехода из локального уведомления (fallback):", e);
+                      }
+                    }
+                  : undefined,
+            });
+          }
+
+          lastSeen = createdAtMs;
+        });
+      });
+    } catch (fallbackError) {
+      console.error("Не удалось подписаться на локальные уведомления:", fallbackError);
+    }
+  }
+
+  inAppSubscriptionUid = userUid;
 }
 

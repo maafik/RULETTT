@@ -11,6 +11,7 @@ import { auth } from "@/lib/firebase";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast as showToast } from "@/hooks/use-toast";
 
 type ChatMessage = {
   id: string;
@@ -31,6 +32,8 @@ const ChatPage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const initialLoadedRef = useRef(false);
+  const lastSeenAtRef = useRef<number>(0);
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -88,6 +91,22 @@ const ChatPage = () => {
     console.log("🔔 Запуск подписки на сообщения для заказа:", id);
     const unsubscribe = subscribeToChatMessages(id, (newMessages) => {
       console.log("📬 Получены новые сообщения:", newMessages.length);
+
+      const latestTs = newMessages.reduce((acc, m) => Math.max(acc, m.createdAt || 0), 0);
+      if (!initialLoadedRef.current) {
+        initialLoadedRef.current = true;
+        lastSeenAtRef.current = latestTs || Date.now();
+      } else {
+        const incoming = newMessages.filter((m) => (m.createdAt || 0) > lastSeenAtRef.current);
+        const userUid = auth.currentUser?.uid;
+        const incomingFromOthers = incoming.filter((m) => m.senderUid && m.senderUid !== userUid);
+        if (incomingFromOthers.length > 0 && typeof document !== "undefined" && document.visibilityState === "visible") {
+          const last = incomingFromOthers[incomingFromOthers.length - 1];
+          showToast({ title: "Новое сообщение", description: last.text });
+        }
+        lastSeenAtRef.current = latestTs || Date.now();
+      }
+
       setMessages(newMessages);
     });
 
