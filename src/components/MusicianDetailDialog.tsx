@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, Music, Clock3, Heart } from "lucide-react";
@@ -27,6 +27,7 @@ interface MusicianDetailDialogProps {
 
 const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onToggleFavorite, onBook }: MusicianDetailDialogProps) => {
   const scrollPositionRef = useRef<number>(0);
+  const [showFullDescription, setShowFullDescription] = useState(false);
 
   // Сохраняем позицию скролла при открытии диалога
   useEffect(() => {
@@ -157,9 +158,28 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
               )}
 
               {/* Description - компактное */}
-              <div>
+              <div className="space-y-2">
                 <p className="mb-1.5 text-xs font-semibold text-foreground">Описание</p>
-                <p className="text-xs text-muted-foreground line-clamp-3">{musician.description}</p>
+                {(() => {
+                  const desc = musician.description || "";
+                  const cutoff = Math.ceil(desc.length * 0.7);
+                  const isLong = desc.length > cutoff && desc.length > 180; // избегаем обрезки коротких текстов
+                  const displayText = isLong && !showFullDescription ? `${desc.slice(0, cutoff).trimEnd()}…` : desc;
+                  return (
+                    <>
+                      <p className="text-xs text-muted-foreground whitespace-pre-line">{displayText}</p>
+                      {isLong && (
+                        <button
+                          type="button"
+                          className="text-xs text-primary underline"
+                          onClick={() => setShowFullDescription((prev) => !prev)}
+                        >
+                          {showFullDescription ? "Скрыть" : "Читать весь текст"}
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               </div>
             </div>

@@ -6,6 +6,7 @@ import CategoryCard from "@/components/CategoryCard";
 import StyleChip from "@/components/StyleChip";
 import MusicianCard from "@/components/MusicianCard";
 import PromoBanner from "@/components/PromoBanner";
+import TopDiscountBanner from "@/components/TopDiscountBanner";
 import BottomNav from "@/components/BottomNav";
 import CategoryGridCard from "@/components/CategoryGridCard";
 import MusicianListCard from "@/components/MusicianListCard";
@@ -39,6 +40,24 @@ const Index = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+
+  const [showFirstOrderDiscount, setShowFirstOrderDiscount] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const dismissed = localStorage.getItem("promo_first_order_10off_dismissed");
+    setShowFirstOrderDiscount(!dismissed);
+  }, []);
+  const handleDismissDiscount = () => {
+    setShowFirstOrderDiscount(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("promo_first_order_10off_dismissed", "1");
+    }
+  };
+
+  const mainPaddingTop = useMemo(() => {
+    const extra = showFirstOrderDiscount ? " + 2.6rem" : "";
+    return `calc(4.4rem + env(safe-area-inset-top, 0px) - 10px${extra})`;
+  }, [showFirstOrderDiscount]);
 
   const allMusicians = useMemo<Musician[]>(() => musiciansData, []);
   
@@ -605,6 +624,11 @@ const Index = () => {
         }}
       >
         <div className="mx-auto max-w-md">
+          {showFirstOrderDiscount && (
+            <div className="mb-2">
+              <TopDiscountBanner onClose={handleDismissDiscount} />
+            </div>
+          )}
           <SearchBar value={searchQuery} onChange={handleSearchChange} />
         </div>
       </header>
@@ -613,7 +637,7 @@ const Index = () => {
       <main 
         className="mx-auto max-w-md px-4 space-y-6 mt-2 pb-4"
         style={{ 
-          paddingTop: `calc(4.4rem + env(safe-area-inset-top, 0px) - 10px)`
+          paddingTop: mainPaddingTop
         }}
       >
         {/* Categories */}

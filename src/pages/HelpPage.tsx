@@ -69,7 +69,7 @@ const HelpPage = () => {
               </div>
               <div className="flex-1">
                 <p className="text-base font-medium text-foreground">Телефон поддержки</p>
-                <p className="text-sm text-muted-foreground">+7 (800) 123-45-67</p>
+                <p className="text-sm text-muted-foreground">+7 951 762-34-67</p>
               </div>
               <div className="text-muted-foreground">›</div>
             </div>
@@ -102,6 +102,42 @@ const HelpPage = () => {
                 <h3 className="mb-2 text-base font-medium text-foreground">Как связаться с музыкантом?</h3>
                 <p className="text-sm text-muted-foreground">
                   После подтверждения заказа вы сможете общаться с музыкантом через встроенный чат.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[16px] border-0 shadow-sm">
+              <CardContent className="p-4">
+                <h3 className="mb-2 text-base font-medium text-foreground">Как работает оплата?</h3>
+                <p className="text-sm text-muted-foreground">
+                  При оплате деньги удерживаются сервисом. Музыканту перечисляется только предоплата, остальная сумма — после завершения мероприятия.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[16px] border-0 shadow-sm">
+              <CardContent className="p-4">
+                <h3 className="mb-2 text-base font-medium text-foreground">Что делать, если музыкант не вышел на связь?</h3>
+                <p className="text-sm text-muted-foreground">
+                  Свяжитесь с поддержкой через чат, email или по телефону. Мы поможем решить вопрос и найдем замену при необходимости.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[16px] border-0 shadow-sm">
+              <CardContent className="p-4">
+                <h3 className="mb-2 text-base font-medium text-foreground">Как изменить детали заказа?</h3>
+                <p className="text-sm text-muted-foreground">
+                  В заказе со статусом "Ожидает подтверждения" можно изменить дату, время, место и комментарий через кнопку "Изменить" на странице заказа.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[16px] border-0 shadow-sm">
+              <CardContent className="p-4">
+                <h3 className="mb-2 text-base font-medium text-foreground">Когда я получу номер телефона музыканта?</h3>
+                <p className="text-sm text-muted-foreground">
+                  Номер телефона станет доступен после полной оплаты заказа, когда статус изменится на "Выступление в процессе".
                 </p>
               </CardContent>
             </Card>

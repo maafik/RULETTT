@@ -86,6 +86,10 @@ const SupportPage = () => {
           paddingTop: `calc(5.5rem + env(safe-area-inset-top, 0px) - 10px)`
         }}
       >
+        <div className="mb-4 rounded-[16px] border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+          <p className="font-medium">Нужна быстрая помощь?</p>
+          <p>Позвоните: <a href="tel:+79517623467" className="underline">+7 951 762-34-67</a></p>
+        </div>
         {isSuccess ? (
           <div className="flex flex-col items-center justify-center rounded-[20px] border border-border bg-card p-8 text-center">
             <CheckCircle2 size={48} className="mb-4 text-green-500" />

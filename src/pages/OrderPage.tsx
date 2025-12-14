@@ -1,16 +1,23 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { App } from "@capacitor/app";
-import OrderStatusChip from "@/components/OrderStatusChip";
-import MusicianOrderCard from "@/components/MusicianOrderCard";
-import OrderDetailsBlock from "@/components/OrderDetailsBlock";
-import OrderTimeline from "@/components/OrderTimeline";
+import PaymentReturnPage from "./PaymentReturnPage";
+import NotFound from "./NotFound";
+import ChatPage from "./ChatPage";
+import MusicianProfilePage from "./MusicianProfilePage";
+import LoginPage from "./LoginPage";
+import ResetPasswordPage from "./ResetPasswordPage";
+import ScrollRestoration from "@/components/ScrollRestoration";
 import OrderActions from "@/components/OrderActions";
 import BookingDialog, { BookingData } from "@/components/BookingDialog";
 import CancelOrderDialog from "@/components/CancelOrderDialog";
 import ConfirmOrderDialog from "@/components/ConfirmOrderDialog";
 import PaymentDialog from "@/components/PaymentDialog";
+import { App } from "@capacitor/app";
+import OrderStatusChip from "@/components/OrderStatusChip";
+import MusicianOrderCard from "@/components/MusicianOrderCard";
+import OrderDetailsBlock from "@/components/OrderDetailsBlock";
+import OrderTimeline from "@/components/OrderTimeline";
 import BottomNav from "@/components/BottomNav";
 import {
   Dialog,
@@ -24,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format, parse } from "date-fns";
 import { ru } from "date-fns/locale/ru";
 import type { Order } from "@/data/orders";
-import { getOrderById, getUserProfile, updateOrderStatus, updateOrderInFirebase, getMusicianUid } from "@/lib/firebase-db";
+import { getOrderById, getUserProfile, updateOrderStatus, updateOrderInFirebase, getMusicianUid, setFirstOrderDiscountUsed } from "@/lib/firebase-db";
 import { auth } from "@/lib/firebase";
 
 const OrderPage = () => {
@@ -39,7 +46,39 @@ const OrderPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isMusician, setIsMusician] = useState(false);
   const [musicianPhone, setMusicianPhone] = useState<string | null>(null);
+  const [isFirstOrderDiscount, setIsFirstOrderDiscount] = useState(false);
   const { toast } = useToast();
+
+  const formatCurrency = (amount: number) => {
+    // Используем неразрывный пробел перед валютой, чтобы символ ₽ не переносился на новую строку
+    return `${amount.toLocaleString("ru-RU", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}\u00A0₽`;
+  };
+
+  const parsePrice = (price: string): number => {
+    const normalized = price
+      .replace(/\u00A0/g, " ")
+      .replace(/[^0-9.,]/g, "")
+      .replace(",", ".");
+    const value = parseFloat(normalized);
+    return isNaN(value) ? 0 : value;
+  };
+
+  const markFirstOrderDiscountUsed = async (uid?: string | null) => {
+    if (!uid) return;
+    if (typeof window !== "undefined") {
+      const key = `first_order_discount_used_${uid}`;
+      localStorage.setItem(key, "1");
+    }
+    setIsFirstOrderDiscount(false);
+    try {
+      await setFirstOrderDiscountUsed(uid);
+    } catch (error) {
+      console.error("Не удалось записать использование скидки в профиль:", error);
+    }
+  };
 
   const loadOrder = async () => {
     if (!id) {
@@ -123,6 +162,10 @@ const OrderPage = () => {
           const profile = await getUserProfile(user.uid);
           const userIsMusician = profile?.role === "musician" || !!profile?.musicianName;
           setIsMusician(userIsMusician);
+          const localKey = `first_order_discount_used_${user.uid}`;
+          const usedLocal = typeof window !== "undefined" ? localStorage.getItem(localKey) : null;
+          const usedProfile = profile?.firstOrderDiscountUsed;
+          setIsFirstOrderDiscount(!(usedProfile || usedLocal));
         } catch (error) {
           console.error("Ошибка при проверке роли пользователя:", error);
         }
@@ -131,6 +174,20 @@ const OrderPage = () => {
     
     checkUserRole();
   }, [id]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const user = auth.currentUser;
+    if (!user) {
+      setIsFirstOrderDiscount(false);
+      return;
+    }
+    const key = `first_order_discount_used_${user.uid}`;
+    const usedLocal = localStorage.getItem(key);
+    if (usedLocal) {
+      setIsFirstOrderDiscount(false);
+    }
+  }, [order?.id]);
 
   // Обработка кнопки "назад" на Android
   useEffect(() => {
@@ -420,7 +477,9 @@ const OrderPage = () => {
         title: "Заказ обновлен",
         description: firestoreSuccess 
           ? "Изменения в заказе были успешно сохранены. Синхронизировано с облаком."
-          : "Изменения сохранены локально. Не удалось синхронизировать с облаком.",
+          : localSuccess
+          ? "Изменения сохранены локально. Не удалось синхронизировать с облаком."
+          : "Заказ обновлен.",
         duration: 3000,
       });
       loadOrder(); // Перезагружаем заказ для отображения изменений
@@ -577,6 +636,7 @@ const OrderPage = () => {
       setIsPaymentDialogOpen(false);
       // Обновляем локальное состояние сразу для мгновенного отображения
       setOrder({ ...order, ...updatedData, status: "in-progress" });
+      markFirstOrderDiscountUsed(auth.currentUser?.uid);
       // Небольшая задержка перед перезагрузкой из Firestore, чтобы он успел обновиться
       setTimeout(async () => {
         await loadOrder();
@@ -728,7 +788,15 @@ const OrderPage = () => {
               open={isPaymentDialogOpen}
               onOpenChange={setIsPaymentDialogOpen}
               onConfirm={handlePayment}
-              amount={order.price}
+              amount={
+                isFirstOrderDiscount
+                  ? formatCurrency(Math.max(0, parsePrice(order.price) * 0.9))
+                  : order.price
+              }
+              originalAmount={
+                isFirstOrderDiscount ? formatCurrency(parsePrice(order.price)) : undefined
+              }
+              discountLabel={isFirstOrderDiscount ? "Скидка 10% на первый заказ" : undefined}
               date={order.date}
               time={order.time}
               location={order.location}

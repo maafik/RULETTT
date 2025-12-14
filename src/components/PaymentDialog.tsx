@@ -13,12 +13,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { createYooKassaPayment } from "@/lib/payment";
 import { openPaymentUrl } from "@/lib/payment-browser";
+import { ShieldCheck } from "lucide-react";
 
 interface PaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (comment?: string) => void;
   amount: string;
+  originalAmount?: string;
+  discountLabel?: string;
   date?: string;
   time?: string;
   location?: string;
@@ -32,6 +35,8 @@ const PaymentDialog = ({
   onOpenChange,
   onConfirm,
   amount,
+  originalAmount,
+  discountLabel,
   date,
   time,
   location,
@@ -129,12 +134,30 @@ const PaymentDialog = ({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <div className="flex items-start gap-2 rounded-[16px] border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+            <ShieldCheck size={16} className="mt-0.5" />
+            <span>
+              Деньги удерживаются сервисом. Музыканту сейчас перечисляется только предоплата, остальная сумма — после завершения мероприятия.
+            </span>
+          </div>
           <Card className="rounded-[16px] border-2 border-primary/20 bg-primary/5">
             <CardContent className="p-4">
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Сумма к оплате</span>
-                  <span className="text-2xl font-bold text-primary">{amount}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="text-sm font-medium text-muted-foreground">Сумма к оплате</span>
+                    {discountLabel && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                        {discountLabel}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-primary">{amount}</div>
+                    {originalAmount && (
+                      <div className="text-xs text-muted-foreground line-through">{originalAmount}</div>
+                    )}
+                  </div>
                 </div>
                 {prepayment && (
                   <div className="flex items-center justify-between pt-2 border-t border-primary/10">

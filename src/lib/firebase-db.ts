@@ -29,6 +29,7 @@ export interface UserProfile {
   city?: string;
   phone?: string;
   allowWhatsAppTelegramNotifications?: boolean;
+  firstOrderDiscountUsed?: boolean;
 }
 
 export interface MusicianProfile {
@@ -45,6 +46,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     return {
       role: "customer",
       city: "Москва",
+      firstOrderDiscountUsed: false,
     } as UserProfile;
   }
   
@@ -61,6 +63,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         city: data.city || "Москва",
         phone: data.phone || null,
         allowWhatsAppTelegramNotifications: data.allowWhatsAppTelegramNotifications || false,
+        firstOrderDiscountUsed: data.firstOrderDiscountUsed || false,
       } as UserProfile;
       
       if (profile.role === "musician" || profile.musicianName) {
@@ -81,6 +84,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     return {
       role: "customer",
       city: "Москва",
+      firstOrderDiscountUsed: false,
     } as UserProfile;
   } catch (error: any) {
     // Обработка ошибок подключения
@@ -121,11 +125,24 @@ export async function createOrUpdateUserProfile(uid: string, data: Partial<UserP
       await setDoc(profileRef, {
         role: "customer",
         city: "Москва",
+        firstOrderDiscountUsed: false,
         ...data,
       });
     }
   } catch (error) {
     console.error("❌ Ошибка при создании/обновлении профиля пользователя:", error);
+  }
+}
+
+/**
+ * Пометить скидку на первый заказ использованной в профиле пользователя
+ */
+export async function setFirstOrderDiscountUsed(uid: string): Promise<void> {
+  try {
+    await createOrUpdateUserProfile(uid, { firstOrderDiscountUsed: true });
+  } catch (error) {
+    console.error("❌ Не удалось обновить флаг скидки первого заказа в профиле:", error);
+    throw error;
   }
 }
 
