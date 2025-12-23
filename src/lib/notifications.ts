@@ -320,8 +320,6 @@ export async function maybeSendTelegramAlert(params: {
 function getTelegramCredentials():
   | { token: string; chatId: string }
   | null {
-  // Берём значения токена и chat_id из переменных окружения (Vite)
-  // Токен нельзя хранить в репозитории.
   const token = TELEGRAM_BOT_TOKEN;
   const chatId = TELEGRAM_CHAT_ID;
 
