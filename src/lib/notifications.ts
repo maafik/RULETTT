@@ -3,8 +3,8 @@ import { db, getMessagingInstance } from "./firebase";
 import { onMessage, type MessagePayload } from "firebase/messaging";
 import { toast as showToast } from "@/hooks/use-toast";
 
-const DEFAULT_TELEGRAM_BOT_TOKEN = "8314217513:AAHhxLHdM7biYi0FEG6hzvSPivYP6CnPkQE";
-const DEFAULT_TELEGRAM_CHAT_ID = "7702221669";
+const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN?.trim?.() || "";
+const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID?.trim?.() || "1076512275";
 type ChatDirection = "client-to-musician" | "musician-to-client";
 
 type ChatNotificationOptions = {
@@ -320,13 +320,14 @@ export async function maybeSendTelegramAlert(params: {
 function getTelegramCredentials():
   | { token: string; chatId: string }
   | null {
-  // Берём значения токена и chat_id из констант, объявленных в начале файла
-  const token = DEFAULT_TELEGRAM_BOT_TOKEN?.trim();
-  const chatId = DEFAULT_TELEGRAM_CHAT_ID?.trim();  
+  // Берём значения токена и chat_id из переменных окружения (Vite)
+  // Токен нельзя хранить в репозитории.
+  const token = TELEGRAM_BOT_TOKEN;
+  const chatId = TELEGRAM_CHAT_ID;
 
   if (!token || !chatId) {
     console.warn(
-      "⚠️ Telegram credentials отсутствуют. Проверьте DEFAULT_TELEGRAM_BOT_TOKEN/CHAT_ID в notifications.ts"
+      "⚠️ Telegram credentials отсутствуют. Проверьте VITE_TELEGRAM_BOT_TOKEN и VITE_TELEGRAM_CHAT_ID"
     );
     return null;
   }

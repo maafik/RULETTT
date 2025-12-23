@@ -25,9 +25,66 @@ interface MusicianDetailDialogProps {
   onBook?: () => void;
 }
 
+const getEmbedUrl = (url: string): string => {
+  const raw = url.trim();
+  if (!raw) return "";
+
+  try {
+    const u = new URL(raw);
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+
+    if (host.endsWith("rutube.ru")) {
+      const match = u.pathname.match(/\/video\/([a-f0-9]{16,})\/?/i);
+      if (match?.[1]) return `https://rutube.ru/play/embed/${match[1]}`;
+    }
+
+    if (host === "vkvideo.ru" || host.endsWith("vk.com")) {
+      const m1 = u.pathname.match(/\/(?:video|clip)(-?\d+)_([0-9]+)\/?/i);
+      if (m1?.[1] && m1?.[2]) {
+        const base = host === "vkvideo.ru" ? "https://vkvideo.ru" : "https://vk.com";
+        return `${base}/video_ext.php?oid=${m1[1]}&id=${m1[2]}&hd=2`;
+      }
+    }
+
+    if (host === "youtu.be") {
+      const id = u.pathname.replace(/^\//, "");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+
+    if (host.endsWith("youtube.com")) {
+      const id = u.searchParams.get("v");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+};
+
+const withAutoplay = (embedUrl: string): string => {
+  try {
+    const u = new URL(embedUrl);
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+
+    u.searchParams.set("autoplay", "1");
+
+    if (host.endsWith("youtube.com")) {
+      u.searchParams.set("mute", "1");
+      u.searchParams.set("playsinline", "1");
+    }
+
+    return u.toString();
+  } catch {
+    return embedUrl;
+  }
+};
+
 const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onToggleFavorite, onBook }: MusicianDetailDialogProps) => {
   const scrollPositionRef = useRef<number>(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const baseEmbedUrl = musician?.videoUrl ? getEmbedUrl(musician.videoUrl) : "";
+  const embedUrl = baseEmbedUrl ? withAutoplay(baseEmbedUrl) : "";
 
   // Сохраняем позицию скролла при открытии диалога
   useEffect(() => {
@@ -53,12 +110,13 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
           <div className="flex flex-col overflow-hidden">
             {/* Video - компактный */}
             <div className="aspect-video w-full flex-shrink-0 overflow-hidden rounded-t-[24px] bg-black">
-              {musician.videoUrl ? (
-                <video
-                  src={musician.videoUrl}
-                  controls
-                  className="h-full w-full object-cover"
-                  poster={musician.gallery?.[0]}
+              {musician.videoUrl && embedUrl ? (
+                <iframe
+                  src={embedUrl}
+                  title={`${musician.name} видео`}
+                  className="h-full w-full"
+                  allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                  allowFullScreen
                 />
               ) : (
                 musician.image ? (

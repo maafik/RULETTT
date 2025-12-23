@@ -59,7 +59,26 @@ const Index = () => {
     return `calc(4.4rem + env(safe-area-inset-top, 0px) - 10px${extra})`;
   }, [showFirstOrderDiscount]);
 
-  const allMusicians = useMemo<Musician[]>(() => musiciansData, []);
+  const allMusicians = useMemo<Musician[]>(() => {
+    const getRank = (musician: Musician) => {
+      const hasVideo = Boolean(musician.videoUrl && musician.videoUrl.trim());
+      const hasGallery = Boolean(musician.gallery && musician.gallery.length > 0);
+
+      if (hasVideo) return 0;
+      if (!hasVideo && hasGallery) return 1;
+      return 2;
+    };
+
+    return musiciansData
+      .map((musician, index) => ({ musician, index }))
+      .sort((a, b) => {
+        const ra = getRank(a.musician);
+        const rb = getRank(b.musician);
+        if (ra !== rb) return ra - rb;
+        return a.index - b.index;
+      })
+      .map(({ musician }) => musician);
+  }, []);
   
   // Функции для работы с кэшем роли
   const getCachedRole = (uid: string | null): boolean | null => {

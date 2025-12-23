@@ -12,7 +12,7 @@ export const musiciansData: Musician[] = [
     nearby: true,
     city: "Москва",
     experience: "10 лет",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/82efa36f1994e8c78e94589ac3723e8f/",
     description:
       "Приветствую, меня зовут Иван - ведущий Вашего незабываемого мероприятия (свадьба, корпоратив, юбилей, концерт)\n\nГарантированные скидки на услуги видеографа, свадебных декораторов и барабанное шоу\n\nОбо мне :\nЗакончил музыкальную школу по классу духового инструмента (Баритон)\nСуворовское Военно-Музыкальное училище\nУниверситет (Факультет искусств)\nКурсы \"Школа ведущих\" г. Москва\nРуководитель яркого барабанного шоу \"Night Beat\"\nУчастник мастер классов г.Москва\nЯ жизнерадостный, яркий и целеустремлённый\nПодарю Вам улыбки, воспоминания и восторг.\n\nПрограмма :\nНаписание индивидуального сценария ( учитывая Ваши пожелания )\nРабота ведущего\nУслуги Ди-джея\nМузыкальное, световое и цифровое сопровождение\nФотограф и видеограф\nЯркое и динамичное барабанное шоу.\nСвадебный декор.\n\nВстречусь для обсуждения формата мероприятия и его нюансов. Составлю оригинальный сценарий согласно Вашим пожеланиям и запросам.\n\nВ программу мероприятия входят традиции, тосты, яркие и незаезженные конкурсы, юмористическое интервью с гостями.\n\nВыбрав нашу команду, Вы можете быть уверены что на Ваш праздник придут настоящие профессионалы с большим опытом и харизмой. Нам важно, чтобы наш уровень удовлетворил Вашим запросам и Вы рекомендовали нас дальше.",
     gallery: [
@@ -111,7 +111,7 @@ export const musiciansData: Musician[] = [
     experience: "15+ лет",
     description:
       "Ведущий с опытом работы на сцене с 2004 года: корпоративы крупных брендов, свадьбы, выпускные и презентации. Мастер импровизации, включает живой вокал, обеспечивает DJ, звук и свет, готовит тайминг и эксклюзивные интерактивы.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/13dcf8bce5b4ba3a23d1681ee2087165/",
     gallery: [
       "/performers/maxim-morozkov/Maxim-Morozkov1.jpg",
       "/performers/maxim-morozkov/Maxim-Morozkov2.jpg",
@@ -138,7 +138,7 @@ export const musiciansData: Musician[] = [
     experience: "10+ лет",
     description:
       "Разрабатывает индивидуальные сценарии, работает по договору, фокус на вовлечении всех поколений без кринжа. Предлагает современный интерактив, управляемый свет, аппаратуру, тяжелый дым, экраны и DJ-зону.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/95e27e1aaba1d8fc4645f2d168de9a53/",
     gallery: [
       "/performers/maxim-bondarenko/Maxim-Bondarenko1.jpg",
       "/performers/maxim-bondarenko/Maxim-Bondarenko2.jpg",
@@ -165,7 +165,7 @@ export const musiciansData: Musician[] = [
     experience: "10+ лет",
     description:
       "Певица и ведущая с большим концертным опытом в России и за рубежом. Репертуар 300+ композиций: поп, джаз, соул, ретро, кинохиты и авторские песни. Готовит программу под событие, может выступать с бэндом разного состава и провести мероприятие.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/585ef1b563a62c652c1983e91840f3a1/",
     gallery: [
       "/performers/adeline-rice/Adeline-Rice1.jpg",
       "/performers/adeline-rice/Adeline-Rice2.jpg",
@@ -196,7 +196,7 @@ export const musiciansData: Musician[] = [
     experience: "7+ лет",
     description:
       "Ведущий корпоративных и городских мероприятий с опытом работы на радио. Работал на крупных проектах для IT-компаний, вузов и городских фестивалей. Умеет держать динамику события и комфортную атмосферу для гостей.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/8b3284eb3c2c0486de55692d8c74f77c/",
     gallery: [
       "/performers/timur-sultanov/Timur-Sultanov1.jpg",
       "/performers/timur-sultanov/Timur-Sultanov2.jpg",
@@ -232,7 +232,7 @@ export const musiciansData: Musician[] = [
     experience: "10+ лет",
     description:
       "Ведущий с 10-летним опытом, делает акцент на интеллектуальном юморе и тактичной подаче. Гибко подстраивается под задачи клиента и формат площадки. Использует разнообразные интерактивные концепции, чтобы вовлекать гостей без перегруза.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/cd8553cfb4b5742de2e8ec29554e3d4c/?r=plemwd",
     gallery: [
       "/performers/evgeniy-chernyak/Evgeniy-Chernyak1.jpg",
       "/performers/evgeniy-chernyak/Evgeniy-Chernyak2.jpg",
@@ -266,7 +266,7 @@ export const musiciansData: Musician[] = [
     experience: "7+ лет",
     description:
       "Ведущий для тех, кто выбирает премиальный уровень и безупречный сервис. Работает по всей России и сотрудничает с крупными брендами. Делает события элегантными, динамичными и выверенными по ритму.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/c856c8775a107bbc7be6b16d0c13a368/",
     gallery: [
       "/performers/alikhan-garifullin/Alikhan-Garifullin1.jpg",
       "/performers/alikhan-garifullin/Alikhan-Garifullin2.jpg",
@@ -295,7 +295,7 @@ export const musiciansData: Musician[] = [
     experience: "10+ лет",
     description:
       "DJ и звукооператор DJ ROKIT для частных и корпоративных мероприятий. Работает с собственным техническим оснащением и отвечает за звук под ключ. Подбирает музыкальное сопровождение под формат, гостей и тайминг вечера.",
-    videoUrl: "",
+    videoUrl: "https://vkvideo.ru/video-94151198_456239037",
     gallery: [
       "/performers/igor-paletskiy/Igor-Paletskiy1.jpg",
       "/performers/igor-paletskiy/Igor-Paletskiy2.jpg",
@@ -373,7 +373,7 @@ export const musiciansData: Musician[] = [
     experience: "10+ лет",
     description:
       "Ведущая корпоративов, свадеб, юбилеев, выпускных и деловых мероприятий. Работает в современном формате: с продуманным сценарием, таймингом и понятными интерактивами. Держит баланс между драйвом и тактичностью, чтобы было комфортно всем поколениям гостей.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/d001dd0492b396a953e4938f4213eac8/",
     gallery: [
       "/performers/nadezhda-mikhaleva/Nadezhda-Mikhaleva1.jpg",
       "/performers/nadezhda-mikhaleva/Nadezhda-Mikhaleva2.jpg",
@@ -418,7 +418,7 @@ export const musiciansData: Musician[] = [
     experience: "10+ лет",
     description:
       "Ведущий корпоративных и праздничных событий с уверенной подачей. Делает акцент на вовлечении гостей и аккуратной коммуникации без перегиба. Помогает выстроить понятный сценарий и держит темп мероприятия.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/bf17bbcdd6394923dc1dc748faf787eb/",
     gallery: [
       "/performers/georgiy-tsarkov/Georgiy-Tsarkov1.jpg",
       "/performers/georgiy-tsarkov/Georgiy-Tsarkov2.jpg",
@@ -447,7 +447,7 @@ export const musiciansData: Musician[] = [
     experience: "10+ лет",
     description:
       "Поющий ведущий, совмещающий конферанс и живой вокал. Подходит для свадеб, корпоративов и частных мероприятий, где нужен драйв и музыка в одной программе. Выстраивает вечер так, чтобы гостям было легко участвовать и отдыхать.",
-    videoUrl: "",
+    videoUrl: "https://vk.com/clip109590310_456239240",
     gallery: [
       "/performers/andrey-izhevskiy/Andrey-Izhevskiy1.jpg",
       "/performers/andrey-izhevskiy/Andrey-Izhevskiy2.jpg",
@@ -469,7 +469,7 @@ export const musiciansData: Musician[] = [
     experience: "Опыт не указан",
     description:
       "Ведущий для вечеринок, корпоративов, свадеб и юбилеев. Работает в Москве и доступен для бронирования через профиль на artist.ru. Контакты и ссылки на соцсети указаны на странице.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/0454cc8ed2d22330cefb1b8af1f8a934/",
     gallery: [
       "/performers/evgeniy-khodzitskiy/Evgeniy-Khodzitskiy1.jpg",
       "/performers/evgeniy-khodzitskiy/Evgeniy-Khodzitskiy2.jpg",
@@ -491,7 +491,7 @@ export const musiciansData: Musician[] = [
     experience: "Опыт не указан",
     description:
       "Ведущий мероприятий и юбилеев в Москве. Доступен для запроса через профиль на artist.ru. Ссылки на сайт и соцсети указаны на странице.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/5f403e6e24acbf4360c9715acc26f548/",
     gallery: [
       "/performers/roman-akimov/Roman-Akimov1.jpg",
       "/performers/roman-akimov/Roman-Akimov2.jpg",
@@ -516,7 +516,7 @@ export const musiciansData: Musician[] = [
     experience: "Опыт не указан",
     description:
       "Ведущий мероприятий и банкетов в Москве. Для связи на странице указаны контакты в соцсетях. Можно отправить запрос на мероприятие через artist.ru.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/4d3e79b5c0c8ba99e27f29afff8e1645/",
     gallery: [
       "/performers/vladimir-soldatkin/Vladimir-Soldatkin1.jpg",
       "/performers/vladimir-soldatkin/Vladimir-Soldatkin2.jpg",
@@ -541,7 +541,7 @@ export const musiciansData: Musician[] = [
     experience: "Опыт не указан",
     description:
       "Иллюзионист и фокусник в Москве: сценическая магия, микромагия и иллюзионное шоу. Подходит для встреч гостей, праздничных программ и развлекательных форматов. Запрос на выступление можно отправить через artist.ru.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/9a2558f30b60e83cec492bff396034f9/",
     gallery: [
       "/performers/semen-dots/Semen-Dots1.jpg",
       "/performers/semen-dots/Semen-Dots2.jpg",
@@ -596,7 +596,7 @@ export const musiciansData: Musician[] = [
     experience: "Опыт не указан",
     description:
       "Ведущий и шоумен в Москве. Для бронирования доступна форма запроса на мероприятие на artist.ru. На странице указаны контакты и ссылки на сайт/соцсети.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/3d04c2b60475b10ec9b8d600a631cc3d/",
     gallery: [
       "/performers/roman-krasniy/Roman-Krasniy1.jpg",
       "/performers/roman-krasniy/Roman-Krasniy2.jpg",
@@ -623,7 +623,7 @@ export const musiciansData: Musician[] = [
     experience: "Опыт не указан",
     description:
       "Ведущий для вечеринок, банкетов, свадеб и корпоративных праздников. Работает в Москве и доступен для запроса через профиль на artist.ru. Контакты и ссылки на площадки указаны на странице.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/6b53d69570306c9ba698aa82d0d93755/",
     gallery: [
       "/performers/maksim-borisov/Maksim-Borisov1.jpg",
       "/performers/maksim-borisov/Maksim-Borisov2.jpg",
@@ -651,7 +651,7 @@ export const musiciansData: Musician[] = [
     experience: "15+ лет",
     description:
       "Ведущий мероприятий с опытом работы более 15 лет. Делает индивидуальный сценарий и проводит как камерные свадьбы, так и масштабные события. В качестве фишек на странице отмечены игра на саксофоне и шуточный ролик в день мероприятия.",
-    videoUrl: "",
+    videoUrl: "https://vkvideo.ru/video15815303_456241119",
     gallery: [
       "/performers/sergey-ryabinin/Sergey-Ryabinin1.jpg",
       "/performers/sergey-ryabinin/Sergey-Ryabinin2.jpg",
@@ -678,7 +678,7 @@ export const musiciansData: Musician[] = [
     experience: "15 лет",
     description:
       "Ведущий ярких событий и свадеб нового формата. На странице указано, что в event-сфере 15 лет и он является продюсером и ведущим собственного шоу «Рифмос». В программе заявлены современные интерактивы и формат с акцентом на драйв и эмоции.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/67f61c3b45f60b901298c8cc24c6a5db/",
     gallery: [
       "/performers/mark-smirnov/Mark-Smirnov1.jpg",
       "/performers/mark-smirnov/Mark-Smirnov2.jpg",
@@ -704,7 +704,7 @@ export const musiciansData: Musician[] = [
     experience: "Опыт не указан",
     description:
       "Ведущий, который делает акцент на простом и бережном подходе к подготовке свадьбы. На странице пишет, что берёт организационные вопросы на себя и помогает снять лишний стресс. На мероприятии держит темп, работает с форс-мажорами и делает так, чтобы вы отдыхали.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/b78367c5396e40ca12d1a8068d65dfbd/",
     gallery: [
       "/performers/dmitriy-tkachenko/Dmitriy-Tkachenko1.jpg",
       "/performers/dmitriy-tkachenko/Dmitriy-Tkachenko2.jpg",
@@ -757,7 +757,7 @@ export const musiciansData: Musician[] = [
     experience: "12 лет",
     description:
       "Ведущий и организатор с 12-летним опытом в индустрии праздника. На странице пишет, что является дирижёром собственного оркестра и делает мероприятия в благородном стиле. Делает упор на элегантный интерактив и эксклюзивные сценарии.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/2ef5d57e3d6d186b52f689a56c6c536c/",
     gallery: [
       "/performers/vladimir-yatskevich/Vladimir-Yatskevich1.jpg",
       "/performers/vladimir-yatskevich/Vladimir-Yatskevich2.jpg",
@@ -782,7 +782,7 @@ export const musiciansData: Musician[] = [
     experience: "с 2013 года",
     description:
       "Ведущий с чувством такта и индивидуальным подходом без шаблонов. На странице указано, что работает с 2013 года и провёл более 600 свадеб. Делает акцент на искренности, интеллигентном юморе и комфортной атмосфере для гостей.",
-    videoUrl: "",
+    videoUrl: "https://rutube.ru/video/6858cc4b15a7020a0fe42bcd13fa20b2/",
     gallery: [
       "/performers/andrey-barabanov/Andrey-Barabanov1.png",
       "/performers/andrey-barabanov/Andrey-Barabanov2.png",

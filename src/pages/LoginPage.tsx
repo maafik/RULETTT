@@ -30,6 +30,8 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
   const [mode, setMode] = useState<"login" | "register" | "reset">("login");
   const [showNotificationPermission, setShowNotificationPermission] = useState(false);
   const [allowNotifications, setAllowNotifications] = useState(false);
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [showAgreementDialog, setShowAgreementDialog] = useState(false);
   const navigate = useNavigate();
 
   // Отладочный лог для попапа
@@ -144,6 +146,11 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
       return;
     }
 
+    if (!agreementAccepted) {
+      setError("Примите пользовательское соглашение");
+      return;
+    }
+
     // Просто показываем попап, регистрация будет после нажатия кнопки в попапе
     setShowNotificationPermission(true);
   };
@@ -195,6 +202,11 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
 
   const handleContinueAfterNotification = async () => {
     setError("");
+
+    if (!agreementAccepted) {
+      setError("Примите пользовательское соглашение");
+      return;
+    }
 
     // Обязательная валидация номера телефона
     if (!phone.trim()) {
@@ -371,6 +383,35 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
               )}
             </div>
 
+            {mode === "register" && (
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="user-agreement"
+                  checked={agreementAccepted}
+                  onCheckedChange={(checked) => setAgreementAccepted(checked === true)}
+                />
+                <div className="space-y-1">
+                  <label
+                    htmlFor="user-agreement"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Я принимаю
+                    {" "}
+                    <button
+                      type="button"
+                      onClick={() => setShowAgreementDialog(true)}
+                      className="text-primary underline"
+                    >
+                      пользовательское соглашение
+                    </button>
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Без принятия соглашения регистрация недоступна
+                  </p>
+                </div>
+              </div>
+            )}
+
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="space-y-3">
@@ -396,6 +437,8 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
                         setError("");
                         setEmail("");
                         setPassword("");
+                        setAgreementAccepted(false);
+                        setShowAgreementDialog(false);
                       }}
                       className="w-full text-sm font-medium text-primary transition hover:text-primary/80"
                     >
@@ -422,6 +465,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
                       setError("");
                       setEmail("");
                       setPassword("");
+                      setAgreementAccepted(false);
                     }}
                     className="w-full text-sm font-medium text-primary transition hover:text-primary/80"
                   >
@@ -433,6 +477,106 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         </form>
         )}
       </Card>
+
+      <Dialog
+        open={showAgreementDialog}
+        onOpenChange={setShowAgreementDialog}
+        modal={true}
+      >
+        <DialogContent className="max-w-md rounded-[24px] max-h-[90vh] overflow-y-auto mt-[env(safe-area-inset-top,0px)] sm:mt-0">
+          <DialogHeader>
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground">
+              Пользовательское соглашение
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground pt-2">
+              Перед регистрацией ознакомьтесь с условиями использования сервиса и оплат.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-sm text-muted-foreground">
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">1. О сервисе</p>
+              <p>
+                Приложение помогает подбирать и бронировать исполнителей (ведущих, DJ и других артистов) для мероприятий.
+                Сервис предоставляет интерфейс для поиска, просмотра профилей и оформления заявки/заказа.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">2. Оператор сервиса и контакты</p>
+              <p>
+                Оператор сервиса: ИНН 310263929630.
+                Контакты для связи: Maafik@66.ru, +7 951 762-34-67.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">3. Регистрация и аккаунт</p>
+              <p>
+                Регистрируясь, вы подтверждаете корректность введённых данных и обязуетесь не передавать доступ к аккаунту третьим лицам.
+                Сервис может использовать ваши контактные данные для уведомлений о статусе заказа и связи по заявкам.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">4. Оплата через ЮKassa</p>
+              <p>
+                Оплата услуг может осуществляться с использованием платёжного решения ЮKassa.
+                Проведение платежа выполняется на стороне платёжного сервиса, а обработка данных банковской карты осуществляется по правилам и стандартам платёжной системы и ЮKassa.
+              </p>
+              <p>
+                При оплате могут применяться комиссии и ограничения вашего банка/платёжного инструмента.
+                В случае технических ошибок платежа повторите попытку позже или используйте другой способ оплаты.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">5. Порядок расчётов (посредник и комиссия)</p>
+              <p>
+                Оператор сервиса выступает посредником: принимает оплату от пользователя, проверяет, что процесс бронирования прошёл корректно,
+                и перечисляет средства исполнителю. Комиссия сервиса удерживается оператором.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">6. Возвраты и отмены</p>
+              <p>
+                Полный возврат возможен в течение 6 часов.
+                Возврат выполняется тем способом, которым была произведена оплата, с учётом правил платёжных систем и ЮKassa.
+                Для оформления возврата обратитесь в поддержку по указанным контактам.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">7. Персональные данные</p>
+              <p>
+                Используя сервис, вы соглашаетесь на обработку персональных данных для целей регистрации, оформления и сопровождения заказов, а также информирования о статусах.
+                Данные могут использоваться для связи с вами и для выполнения обязательств по заказу.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">8. Ответственность</p>
+              <p>
+                Сервис предоставляет информацию об исполнителях и инструменты для оформления заявки.
+                Исполнитель оказывает услуги по договорённости сторон, а качество и содержание услуги определяется условиями заказа.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setAgreementAccepted(true);
+                setShowAgreementDialog(false);
+              }}
+              className="w-full rounded-[16px]"
+            >
+              Принять
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Попап разрешения на уведомления и номера телефона после регистрации */}
       <Dialog
