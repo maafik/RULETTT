@@ -292,7 +292,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
   };
 
   return (
-    <div className="flex h-[100dvh] flex-col items-center justify-center bg-gradient-to-b from-background to-muted px-4 sm:px-6 overflow-hidden">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gradient-to-b from-background to-muted px-4 sm:px-6 overflow-hidden">
       <div className="mb-4 sm:mb-8 flex items-center gap-3 text-primary">
         <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-primary/10">
           <Music2 size={24} className="sm:size-[28px] text-primary" />
@@ -303,7 +303,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         </div>
       </div>
 
-      <Card className="w-full max-w-md rounded-[24px] border-none bg-card/90 p-4 sm:p-8 shadow-xl backdrop-blur overflow-y-auto">
+      <Card className="w-full max-w-md max-h-[calc(100dvh-8rem)] rounded-[24px] border-none bg-card/90 p-4 sm:p-8 shadow-xl backdrop-blur overflow-y-auto overscroll-contain">
         <div className="mb-6 space-y-2 text-center">
           <h2 className="text-2xl font-bold text-foreground">
             {mode === "login" ? "Войти в аккаунт" : mode === "register" ? "Создать аккаунт" : "Восстановить пароль"}
@@ -483,7 +483,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         onOpenChange={setShowAgreementDialog}
         modal={true}
       >
-        <DialogContent className="max-w-md rounded-[24px] max-h-[90vh] overflow-y-auto pt-[env(safe-area-inset-top,0px)] sm:pt-6">
+        <DialogContent className="top-0 translate-y-0 left-0 translate-x-0 w-screen h-[100dvh] max-h-[100dvh] rounded-none overflow-y-auto p-4 sm:p-6 sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:h-auto sm:max-w-md sm:max-h-[90vh] sm:rounded-[24px]">
           <DialogHeader>
             <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground">
               Пользовательское соглашение
@@ -591,7 +591,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         }}
         modal={true}
       >
-        <DialogContent className="max-w-md rounded-[24px] max-h-[90vh] overflow-y-auto mt-[env(safe-area-inset-top,0px)] sm:mt-0 pt-4 sm:pt-6">
+        <DialogContent className="top-0 translate-y-0 left-0 translate-x-0 w-screen h-[100dvh] max-h-[100dvh] rounded-none overflow-y-auto p-4 sm:p-6 sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:h-auto sm:max-w-md sm:max-h-[90vh] sm:rounded-[24px]">
           <DialogHeader className="pt-2 sm:pt-0">
             <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground">
               Дополнительная информация
