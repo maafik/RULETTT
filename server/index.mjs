@@ -3,8 +3,13 @@ import cors from "cors";
 import admin from "firebase-admin";
 
 // YooKassa config: желательно вынести в переменные окружения
-const YOOKASSA_SHOP_ID = "1222923";
-const YOOKASSA_SECRET_KEY = "test_twl-65kK1FZoIvSdt1B_wthG_EfXaJGqpbAoqqNB5-4";
+const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID;
+const YOOKASSA_SECRET_KEY = process.env.YOOKASSA_SECRET_KEY;
+
+function getYooKassaAuthHeader() {
+  if (!YOOKASSA_SHOP_ID || !YOOKASSA_SECRET_KEY) return null;
+  return Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64");
+}
 
 // Инициализация Firebase Admin SDK для работы с Firestore и FCM (HTTP v1)
 if (!admin.apps.length) {
@@ -134,7 +139,13 @@ app.post("/create-payment", async (req, res) => {
     const returnUrl = `${origin}/payment/return?orderId=${encodeURIComponent(orderId)}`;
 
     const idempotenceKey = `order-${orderId}-${Date.now()}`;
-    const authHeader = Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64");
+    const authHeader = getYooKassaAuthHeader();
+    if (!authHeader) {
+      return res.status(500).json({
+        success: false,
+        error: "YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY не заданы в переменных окружения",
+      });
+    }
 
     const payload = {
       amount: {
@@ -266,7 +277,13 @@ app.get("/payment-status/:paymentId", async (req, res) => {
       return res.status(400).json({ success: false, error: "paymentId обязателен" });
     }
 
-    const authHeader = Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64");
+    const authHeader = getYooKassaAuthHeader();
+    if (!authHeader) {
+      return res.status(500).json({
+        success: false,
+        error: "YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY не заданы в переменных окружения",
+      });
+    }
 
     console.log("🔍 Проверка статуса платежа в YooKassa", { paymentId });
 
@@ -314,7 +331,13 @@ app.get("/payment-status-by-order/:orderId", async (req, res) => {
       return res.status(400).json({ success: false, error: "orderId обязателен" });
     }
 
-    const authHeader = Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64");
+    const authHeader = getYooKassaAuthHeader();
+    if (!authHeader) {
+      return res.status(500).json({
+        success: false,
+        error: "YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY не заданы в переменных окружения",
+      });
+    }
 
     console.log("🔍 Проверка статуса платежа по orderId в YooKassa", { orderId });
 
