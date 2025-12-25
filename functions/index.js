@@ -3,16 +3,9 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-// YooKassa config: хранить только в переменных окружения / secrets
-const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID || (functions.config().yookassa && functions.config().yookassa.shop_id) || '';
-const YOOKASSA_SECRET_KEY = process.env.YOOKASSA_SECRET_KEY || (functions.config().yookassa && functions.config().yookassa.secret_key) || '';
-
-function getYooKassaAuthHeader() {
-  if (!YOOKASSA_SHOP_ID || !YOOKASSA_SECRET_KEY) {
-    throw new Error('YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY не заданы (env или functions config)');
-  }
-  return Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString('base64');
-}
+// YooKassa config (test)
+const YOOKASSA_SHOP_ID = '1222923';
+const YOOKASSA_SECRET_KEY = 'test_MTIyMjkyMz8tBA5_zr2TiXGJDffc0cG9u6TNq-TbJYw';
 
 /**
  * HTTP Cloud Function для создания платежа в YooKassa
@@ -52,7 +45,7 @@ exports.createYooKassaPayment = functions.https.onRequest(async (req, res) => {
 
     const idempotenceKey = `order-${orderId}-${Date.now()}`;
 
-    const authHeader = getYooKassaAuthHeader();
+    const authHeader = Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString('base64');
 
     const payload = {
       amount: {
