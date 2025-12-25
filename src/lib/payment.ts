@@ -1,7 +1,7 @@
 // YooKassa Payment Service
-// Test key for mobile SDK: test_MTIyMjkyMz8tBA5_zr2TiXGJDffc0cG9u6TNq-TbJYw
+// Test key for mobile SDK: configured outside repo
 
-const YOOKASSA_TEST_KEY = "test_MTIyMjkyMz8tBA5_zr2TiXGJDffc0cG9u6TNq-TbJYw";
+const YOOKASSA_TEST_KEY = "";
 
 export interface PaymentData {
   amount: {
@@ -119,7 +119,7 @@ export const initializeYooKassa = async (shopId?: string): Promise<void> => {
     // В зависимости от платформы (Android/iOS)
     
     console.log("🔧 Инициализация YooKassa SDK", {
-      testKey: YOOKASSA_TEST_KEY.substring(0, 20) + "...",
+      hasTestKey: Boolean(YOOKASSA_TEST_KEY),
       shopId,
     });
 
