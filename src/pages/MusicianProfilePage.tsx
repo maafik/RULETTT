@@ -9,6 +9,7 @@ import { getUserProfile } from "@/lib/firebase-db";
 import { auth } from "@/lib/firebase";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import ImageWithFallback from "@/components/ImageWithFallback";
+import PhotoGalleryDialog from "@/components/PhotoGalleryDialog";
 
 const fallbackGallery = (image?: string) => {
   if (image) return [image];
@@ -22,6 +23,8 @@ const MusicianProfilePage = () => {
   const [isMusician, setIsMusician] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRoleChecked, setIsRoleChecked] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [galleryStartIndex, setGalleryStartIndex] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
@@ -290,17 +293,36 @@ const MusicianProfilePage = () => {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {gallery.map((image, index) => (
-                    <div key={`${image}-${index}`} className="h-24 overflow-hidden rounded-[14px] bg-muted">
+                    <button
+                      key={`${image}-${index}`}
+                      type="button"
+                      onClick={() => {
+                        setGalleryStartIndex(index);
+                        setIsGalleryOpen(true);
+                      }}
+                      className="h-24 overflow-hidden rounded-[14px] bg-muted"
+                    >
                       <ImageWithFallback 
                         src={image} 
                         alt={`${order.artistName} фото ${index + 1}`} 
                         fallbackText={order.artistName.charAt(0)}
                         className="h-full w-full object-cover"
                       />
-                    </div>
+                    </button>
                   ))}
                 </div>
               </section>
+
+              {gallery.length > 0 && (
+                <PhotoGalleryDialog
+                  open={isGalleryOpen}
+                  onOpenChange={setIsGalleryOpen}
+                  images={gallery}
+                  startIndex={galleryStartIndex}
+                  title={order.artistName}
+                  fallbackText={order.artistName.charAt(0)}
+                />
+              )}
             </>
           )
         ) : (

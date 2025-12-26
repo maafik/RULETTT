@@ -31,8 +31,49 @@ import { useToast } from "@/hooks/use-toast";
 import { format, parse } from "date-fns";
 import { ru } from "date-fns/locale/ru";
 import type { Order } from "@/data/orders";
-import { getOrderById, getUserProfile, updateOrderStatus, updateOrderInFirebase, getMusicianUid, setFirstOrderDiscountUsed } from "@/lib/firebase-db";
+import { getOrderById, getUserProfile, updateOrderStatus, updateOrderInFirebase, setFirstOrderDiscountUsed } from "@/lib/firebase-db";
 import { auth } from "@/lib/firebase";
+
+const paidOrderContacts = [
+  { display: "+7 910 879-72-01 - Надежда Михалева", phone: "+7 910 879-72-01" },
+  { display: "+7 925 271-07-15 - Тимур Султанов", phone: "+7 925 271-07-15" },
+  { display: "+7 (977) 100-20-90 Евгений Черняк", phone: "+7 (977) 100-20-90" },
+  { display: "Георгий DJO Царьков +7 916 137-04-85", phone: "+7 916 137-04-85" },
+  { display: "7 909 676-93-40 - Евгений Ходзицкий", phone: "7 909 676-93-40" },
+  { display: "+7 (903) 544-36-94 Роман Акимов", phone: "+7 (903) 544-36-94" },
+  { display: "+7 937 069-00-80 -  ВЛАДИМИР СОЛДАТКИН", phone: "+7 937 069-00-80" },
+  { display: "+7 916 943-99-28 - Роман Красный", phone: "+7 916 943-99-28" },
+  { display: "Максим Борисов - +7 962 424-64-03", phone: "+7 962 424-64-03" },
+  { display: "+7 903 525-39-34 - Сергей Рябинин", phone: "+7 903 525-39-34" },
+  { display: "+7 925 110-07-47 - Марк Смирнов", phone: "+7 925 110-07-47" },
+  { display: "+7 927 011-88-35- Дмитрий Ткаченко", phone: "+7 927 011-88-35" },
+  { display: "+7 926 835-93-07 - Владимир Яцкевич", phone: "+7 926 835-93-07" },
+  { display: "+7 909 910-80-14 - Андрей Барабанов", phone: "+7 909 910-80-14" },
+  { display: "+7 925 330-83-77 - Иван Марчукс", phone: "+7 925 330-83-77" },
+  { display: "Дмитрий Веселов - +7 926 542-69-48", phone: "+7 926 542-69-48" },
+  { display: "Misha Monaco", phone: null },
+  { display: "+7 916 305-67-58 - Максим Морозков", phone: "+7 916 305-67-58" },
+  { display: "+7 916 509-62-79- Бондаренко Максим", phone: "+7 916 509-62-79" },
+  { display: "+7 (916) 222-57-55 - Аделина Райс", phone: "+7 (916) 222-57-55" },
+  { display: "+7 919 373-56-53 - Аликхан Гарифуллин", phone: "+7 919 373-56-53" },
+  { display: "Игорь Палецкий DJ ROKIT - +7 906 990-60-90", phone: "+7 906 990-60-90" },
+] as const;
+
+const toTelHref = (phone: string) => `tel:${phone.replace(/[^+\d]/g, "")}`;
+
+const normalizeOrderStyleForDisplay = (style?: string) => {
+  if (!style) return style;
+  const lowered = style.toLowerCase();
+  const hasHost = lowered.includes("ведущ");
+  const hasDj = /(^|[^\w])(dj|диджей|ди-джей)([^\w]|$)/i.test(style);
+
+  const parts: string[] = [];
+  if (hasHost) parts.push("Ведущий");
+  if (hasDj) parts.push("DJ");
+
+  if (parts.length > 0) return parts.join(", ");
+  return "Музыкант";
+};
 
 const OrderPage = () => {
   const navigate = useNavigate();
@@ -43,9 +84,9 @@ const OrderPage = () => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isPhoneDialogOpen, setIsPhoneDialogOpen] = useState(false);
+  const [isContactsDialogOpen, setIsContactsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isMusician, setIsMusician] = useState(false);
-  const [musicianPhone, setMusicianPhone] = useState<string | null>(null);
   const [isFirstOrderDiscount, setIsFirstOrderDiscount] = useState(false);
   const { toast } = useToast();
 
@@ -191,7 +232,7 @@ const OrderPage = () => {
 
   // Обработка кнопки "назад" на Android
   useEffect(() => {
-    let listener: any = null;
+    let listener: { remove: () => void } | null = null;
 
     const setupBackButton = async () => {
       const handleBackButton = async () => {
@@ -214,28 +255,6 @@ const OrderPage = () => {
       }
     };
   }, [navigate]);
-
-  // Получаем номер телефона музыканта для клиентов
-  useEffect(() => {
-    if (!order || isMusician || !order.artistName) return;
-
-    const fetchMusicianPhone = async () => {
-      try {
-        // Получаем UID музыканта по имени
-        const musicianUid = await getMusicianUid(order.artistName);
-        if (musicianUid) {
-          // TODO: Получить номер телефона из профиля пользователя или Firebase Auth
-          // Пока оставляем null, номер будет получен позже, когда будет понятно, где он хранится
-          // const musicianUser = await getAuth().getUser(musicianUid);
-          // setMusicianPhone(musicianUser.phoneNumber || null);
-        }
-      } catch (error) {
-        console.error("Ошибка при получении номера телефона музыканта:", error);
-      }
-    };
-
-    fetchMusicianPhone();
-  }, [order?.artistName, isMusician]);
 
   // Автоматически обновляем статус заказа, если прошла 1 минута после создания
   useEffect(() => {
@@ -511,9 +530,8 @@ const OrderPage = () => {
       // Номер музыканта доступен только после оплаты (in-progress, completed)
       const isPhoneVisible = order.status === "in-progress" || order.status === "completed";
       
-      if (isPhoneVisible && musicianPhone) {
-        // Переход на звонок
-        window.location.href = `tel:${musicianPhone}`;
+      if (isPhoneVisible) {
+        setIsContactsDialogOpen(true);
       } else if (!isPhoneVisible) {
         // Показываем попап с сообщением до оплаты
         setIsPhoneDialogOpen(true);
@@ -536,7 +554,7 @@ const OrderPage = () => {
   const handleConfirmOrder = async (data: { amount: string; time: string; location: string; prepayment?: string }) => {
     if (!order) return;
 
-    const updatedData: any = {
+    const updatedData: Partial<Order> = {
       price: `${data.amount} ₽`,
       time: data.time,
       location: data.location,
@@ -687,7 +705,7 @@ const OrderPage = () => {
             </div>
             <MusicianOrderCard
               name={order.artistName}
-              style={order.style}
+              style={normalizeOrderStyleForDisplay(order.style)}
               rating={order.rating}
               price={order.price}
               image={order.image}
@@ -816,6 +834,39 @@ const OrderPage = () => {
                     Номер телефона музыканта будет доступен только после оплаты заказа.
                   </DialogDescription>
                 </DialogHeader>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {!isMusician && (
+            <Dialog open={isContactsDialogOpen} onOpenChange={setIsContactsDialogOpen}>
+              <DialogContent className="max-w-md rounded-[24px]">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold">Номера телефонов</DialogTitle>
+                  <DialogDescription className="text-sm text-muted-foreground">
+                    Нажмите на номер, чтобы позвонить.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-4 space-y-2">
+                  {paidOrderContacts.map((contact) => (
+                    <button
+                      key={contact.display}
+                      type="button"
+                      disabled={!contact.phone}
+                      onClick={() => {
+                        if (!contact.phone) return;
+                        window.location.href = toTelHref(contact.phone);
+                      }}
+                      className={`w-full rounded-[16px] border border-border bg-card px-4 py-3 text-left text-sm transition-all ${
+                        contact.phone
+                          ? "hover:bg-accent active:scale-[0.98] cursor-pointer"
+                          : "opacity-50 cursor-not-allowed"
+                      }`}
+                    >
+                      {contact.display}
+                    </button>
+                  ))}
+                </div>
               </DialogContent>
             </Dialog>
           )}

@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, Music, Clock3, Heart } from "lucide-react";
 import ImageWithFallback from "./ImageWithFallback";
+import PhotoGalleryDialog from "@/components/PhotoGalleryDialog";
 
 interface MusicianDetailDialogProps {
   open: boolean;
@@ -83,6 +84,8 @@ const withAutoplay = (embedUrl: string): string => {
 const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onToggleFavorite, onBook }: MusicianDetailDialogProps) => {
   const scrollPositionRef = useRef<number>(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [galleryStartIndex, setGalleryStartIndex] = useState(0);
   const baseEmbedUrl = musician?.videoUrl ? getEmbedUrl(musician.videoUrl) : "";
   const embedUrl = baseEmbedUrl ? withAutoplay(baseEmbedUrl) : "";
 
@@ -202,17 +205,36 @@ const MusicianDetailDialog = ({ open, onOpenChange, musician, isFavorite, onTogg
                   <p className="mb-2 text-xs font-semibold text-foreground">Галерея</p>
                   <div className="grid grid-cols-3 gap-1.5">
                     {musician.gallery.slice(0, 6).map((image, index) => (
-                      <div key={index} className="h-16 overflow-hidden rounded-[10px] bg-muted">
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => {
+                          setGalleryStartIndex(index);
+                          setIsGalleryOpen(true);
+                        }}
+                        className="h-16 overflow-hidden rounded-[10px] bg-muted"
+                      >
                         <ImageWithFallback 
                           src={image} 
                           alt={`${musician.name} фото ${index + 1}`} 
                           fallbackText={musician.name.charAt(0)}
                           className="h-full w-full object-cover"
                         />
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
+              )}
+
+              {musician.gallery && musician.gallery.length > 0 && (
+                <PhotoGalleryDialog
+                  open={isGalleryOpen}
+                  onOpenChange={setIsGalleryOpen}
+                  images={musician.gallery}
+                  startIndex={galleryStartIndex}
+                  title={musician.name}
+                  fallbackText={musician.name.charAt(0)}
+                />
               )}
 
               {/* Description - компактное */}

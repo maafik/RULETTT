@@ -1,5 +1,7 @@
 import { MessageCircle, ChevronRight, Star } from "lucide-react";
+import { useMemo, useState } from "react";
 import ImageWithFallback from "./ImageWithFallback";
+import PhotoGalleryDialog from "@/components/PhotoGalleryDialog";
 
 interface MusicianOrderCardProps {
   name: string;
@@ -12,18 +14,28 @@ interface MusicianOrderCardProps {
 }
 
 const MusicianOrderCard = ({ name, style, rating, price, image, onMessage, onViewProfile }: MusicianOrderCardProps) => {
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const galleryImages = useMemo(() => (image ? [image] : []), [image]);
+
   return (
     <div className="rounded-[16px] bg-card p-4 shadow-sm">
       <div className="flex items-center gap-4">
         {/* Photo */}
-        <div className="relative h-[60px] w-[60px] flex-shrink-0 overflow-hidden rounded-[12px] bg-muted">
+        <button
+          type="button"
+          onClick={() => {
+            if (galleryImages.length === 0) return;
+            setIsGalleryOpen(true);
+          }}
+          className="relative h-[60px] w-[60px] flex-shrink-0 overflow-hidden rounded-[12px] bg-muted"
+        >
           <ImageWithFallback 
             src={image} 
             alt={name} 
             fallbackText={name.charAt(0)}
             className="h-full w-full object-cover"
           />
-        </div>
+        </button>
 
         {/* Info */}
         <div className="flex-1">
@@ -57,6 +69,17 @@ const MusicianOrderCard = ({ name, style, rating, price, image, onMessage, onVie
           <ChevronRight size={18} className="text-foreground" />
         </button>
       </div>
+
+      {galleryImages.length > 0 && (
+        <PhotoGalleryDialog
+          open={isGalleryOpen}
+          onOpenChange={setIsGalleryOpen}
+          images={galleryImages}
+          startIndex={0}
+          title={name}
+          fallbackText={name.charAt(0)}
+        />
+      )}
     </div>
   );
 };

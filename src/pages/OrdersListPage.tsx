@@ -7,6 +7,21 @@ import type { Order } from "@/data/orders";
 import { auth } from "@/lib/firebase";
 import { getUserProfile, getOrdersForMusician, getOrdersForCustomer, subscribeToMusicianOrders, isAdminProfile, getAllOrders, subscribeToAllOrders } from "@/lib/firebase-db";
 
+const normalizeOrderStyleForDisplay = (style?: string) => {
+  if (!style) return style;
+
+  const lowered = style.toLowerCase();
+  const hasHost = lowered.includes("ведущ");
+  const hasDj = /(^|[^\w])(dj|диджей|ди-джей)([^\w]|$)/i.test(style);
+
+  const parts: string[] = [];
+  if (hasHost) parts.push("Ведущий");
+  if (hasDj) parts.push("DJ");
+
+  if (parts.length > 0) return parts.join(", ");
+  return "Музыкант";
+};
+
 const OrdersListPage = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -230,7 +245,7 @@ const OrdersListPage = () => {
                     ) : (
                       <>
                         <p className="text-base font-bold text-foreground">{order.artistName}</p>
-                        <p className="text-sm text-muted-foreground">{order.style}</p>
+                        <p className="text-sm text-muted-foreground">{normalizeOrderStyleForDisplay(order.style)}</p>
                       </>
                     )}
                   </div>
