@@ -30,6 +30,7 @@ import { updateOrderStatus } from "@/lib/firebase-db";
 import { useNavigate } from "react-router-dom";
 import { clearOrdersCache } from "@/lib/orders";
 import { ORDERS_STORAGE_KEY } from "@/constants/storage";
+import { App as CapacitorApp } from "@capacitor/app";
 
 const queryClient = new QueryClient();
 
@@ -199,6 +200,47 @@ const AppContent = () => {
       window.removeEventListener("popstate", handlePopState);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof document === "undefined") return;
+
+    let listener: { remove: () => void } | null = null;
+
+    const setupBackButton = async () => {
+      try {
+        listener = await CapacitorApp.addListener("backButton", () => {
+          if (location.pathname.startsWith("/chat/")) return;
+
+          const openOverlays = document.querySelectorAll(
+            '[data-state="open"][role="dialog"], [data-state="open"][data-side]'
+          );
+          if (openOverlays.length === 0) return;
+
+          const escapeEvent = new KeyboardEvent("keydown", {
+            key: "Escape",
+            code: "Escape",
+            keyCode: 27,
+            bubbles: true,
+            cancelable: true,
+          });
+
+          (window as unknown as { __radixBackHandledAt?: number }).__radixBackHandledAt = Date.now();
+          document.dispatchEvent(escapeEvent);
+        });
+      } catch {
+        void 0;
+      }
+    };
+
+    setupBackButton();
+
+    return () => {
+      if (listener) {
+        listener.remove();
+      }
+    };
+  }, [location.pathname]);
 
   if (!isAuthReady) {
     return (

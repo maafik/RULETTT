@@ -236,6 +236,32 @@ const OrderPage = () => {
 
     const setupBackButton = async () => {
       const handleBackButton = async () => {
+        const handledAt = (window as unknown as { __radixBackHandledAt?: number }).__radixBackHandledAt;
+        if (handledAt && Date.now() - handledAt < 800) {
+          return;
+        }
+
+        try {
+          const openDialogs = document.querySelectorAll(
+            '[data-state="open"][role="dialog"], [data-state="open"][data-side]'
+          );
+          if (openDialogs.length > 0) {
+            const escapeEvent = new KeyboardEvent("keydown", {
+              key: "Escape",
+              code: "Escape",
+              keyCode: 27,
+              bubbles: true,
+              cancelable: true,
+            });
+
+            (window as unknown as { __radixBackHandledAt?: number }).__radixBackHandledAt = Date.now();
+            document.dispatchEvent(escapeEvent);
+            return;
+          }
+        } catch {
+          void 0;
+        }
+
         const canGoBack = window.history.length > 1;
         if (canGoBack) {
           navigate("/orders");

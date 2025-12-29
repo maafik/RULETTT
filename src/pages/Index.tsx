@@ -72,6 +72,10 @@ const Index = () => {
     return musiciansData
       .map((musician, index) => ({ musician, index }))
       .sort((a, b) => {
+        const isIzhA = a.musician.name === "Андрей Ижевский";
+        const isIzhB = b.musician.name === "Андрей Ижевский";
+        if (isIzhA !== isIzhB) return isIzhA ? 1 : -1;
+
         const ra = getRank(a.musician);
         const rb = getRank(b.musician);
         if (ra !== rb) return ra - rb;
@@ -541,7 +545,21 @@ const Index = () => {
   const baseMusicians = allMusicians;
   const musiciansToShow = baseMusicians.slice(0, visibleCount);
   const hasMoreMusicians = visibleCount < baseMusicians.length;
-  const featuredMusicians = hasActiveFilters ? filteredMusicians : allMusicians.slice(0, 4);
+  const recommendedMusicians = useMemo(() => {
+    const recommendedNames = [
+      "Тимур Султанов",
+      "Евгений Черняк",
+      "Аликхан Гарифуллин",
+      "Максим Борисов",
+      "Андрей Барабанов",
+    ];
+
+    return recommendedNames
+      .map((name) => allMusicians.find((musician) => musician.name === name))
+      .filter((musician): musician is Musician => Boolean(musician));
+  }, [allMusicians]);
+
+  const featuredMusicians = hasActiveFilters ? filteredMusicians : recommendedMusicians;
   const selectedIsFavorite = selectedMusician ? favoriteMusicians.some((fav) => fav.name === selectedMusician.name) : false;
 
   const handleLoadMore = () => {
@@ -654,7 +672,7 @@ const Index = () => {
 
       {/* Main Content */}
       <main 
-        className="mx-auto max-w-md px-4 space-y-6 mt-2 pb-4"
+        className="mx-auto max-w-md px-4 mt-2 pb-4 flex flex-col gap-6"
         style={{ 
           paddingTop: mainPaddingTop
         }}
@@ -712,7 +730,9 @@ const Index = () => {
         <section>
           <h2 className="mb-4 text-xl font-bold text-foreground">Категории</h2>
           <div className="grid grid-cols-2 gap-3">
-            {gridCategories.map((category, index) => (
+            {gridCategories
+              .filter((category) => category.title !== "DJ" && category.title !== "Электронщики")
+              .map((category, index) => (
               <CategoryGridCard
                 key={index}
                 icon={category.icon}
@@ -809,7 +829,7 @@ const Index = () => {
         </section>
 
         {/* Musicians List */}
-        <section ref={musiciansRef}>
+        <section ref={musiciansRef} style={{ order: 60 }}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-foreground">Музыканты</h2>
           </div>
@@ -846,7 +866,7 @@ const Index = () => {
         </section>
 
         {/* DJ Section */}
-        {djs.length > 0 && (
+        {djs.length > 0 && false && (
           <section ref={djSectionRef}>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground">DJ</h2>
@@ -871,7 +891,7 @@ const Index = () => {
 
         {/* Hosts Section */}
         {hosts.length > 0 && (
-          <section ref={hostsSectionRef}>
+          <section ref={hostsSectionRef} style={{ order: 50 }}>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground">Ведущие</h2>
               <span className="text-sm text-muted-foreground">{hosts.length}</span>
