@@ -731,7 +731,7 @@ const Index = () => {
           <h2 className="mb-4 text-xl font-bold text-foreground">Категории</h2>
           <div className="grid grid-cols-2 gap-3">
             {gridCategories
-              .filter((category) => category.title !== "DJ" && category.title !== "Электронщики")
+              .filter((category) => category.title === "Ведущие")
               .map((category, index) => (
               <CategoryGridCard
                 key={index}
